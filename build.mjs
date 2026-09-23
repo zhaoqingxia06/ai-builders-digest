@@ -575,6 +575,7 @@ async function main() {
 
   footer.site { margin-top: 40px; text-align: center; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; }
 
+  .h3-ico { width: 13px; height: 13px; flex: none; }
 </style>
 </head>
 <body id="top" data-lang="zh">
