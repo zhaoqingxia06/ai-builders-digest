@@ -57,12 +57,22 @@ function inline(s) {
 const ICON_LINK =
   '<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M7.775 3.275a.75.75 0 0 0 1.06 1.06l1.25-1.25a2 2 0 1 1 2.83 2.83l-2.5 2.5a2 2 0 0 1-2.83 0 .75.75 0 0 0-1.06 1.06 3.5 3.5 0 0 0 4.95 0l2.5-2.5a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25Zm-4.69 9.64a2 2 0 0 1 0-2.83l2.5-2.5a2 2 0 0 1 2.83 0 .75.75 0 0 0 1.06-1.06 3.5 3.5 0 0 0-4.95 0l-2.5 2.5a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25a.75.75 0 0 0-1.06-1.06l-1.25 1.25a2 2 0 0 1-2.83 0Z"></path></svg>';
 
-// `keywords: a | b | c` line under the H1 feeds the hot-topic chips; stripped from the body.
+// Parse the metadata lines at the top of a day's body (keywords / headline /
+// deck / quote / quoteBy) and return them with the stripped body.
 function parseKeywords(md) {
-  const m = md.match(/^keywords:\s*(.+)\s*$/m);
-  if (!m) return { kw: [], body: md };
-  const kw = m[1].split('|').map((s) => s.trim()).filter(Boolean).slice(0, 3);
-  return { kw, body: md.replace(m[0], '') };
+  const grab = (re) => {
+    const m = md.match(re);
+    return m ? m[1].trim() : '';
+  };
+  const meta = {
+    kw: grab(/^keywords:\s*(.+)\s*$/m).split('|').map((s) => s.trim()).filter(Boolean).slice(0, 3),
+    headline: grab(/^headline:\s*(.+)\s*$/m),
+    deck: grab(/^deck:\s*(.+)\s*$/m),
+    quote: grab(/^quote:\s*(.+)\s*$/m),
+    quoteBy: grab(/^quoteBy:\s*(.+)\s*$/m),
+  };
+  const body = md.replace(/^(?:keywords|headline|deck|quote|quoteBy):[^\n]*\n?/gm, '').replace(/^\n+/, '');
+  return { ...meta, body };
 }
 
 function srcChip(url) {
@@ -209,6 +219,74 @@ function injectAvatars(html, avatarFiles) {
   });
 }
 
+// ---------- generative cover art & section icons ----------
+
+// Deterministic editorial SVG "engraving" seeded by the date — halftone dots,
+// concentric arcs and a signal wave; every day gets a different plate.
+function coverArt(seed) {
+  let h = 2166136261;
+  for (const c of seed) {
+    h ^= c.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  const rnd = () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822519);
+    h = Math.imul(h ^ (h >>> 13), 3266489917);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+  const sand = '#cfc5ab', ink = '#211d16', accent = '#a4502e';
+  let s = '';
+  // halftone dot field on the right
+  for (let gx = 0; gx < 12; gx++) {
+    for (let gy = 0; gy < 8; gy++) {
+      const x = 470 + gx * 20 + (gy % 2) * 10;
+      const y = 14 + gy * 19;
+      const r = 0.7 + 1.9 * Math.abs(Math.sin(gx * 0.7 + gy * 0.5 + rnd() * 2));
+      s += `<circle cx="${x}" cy="${y}" r="${r.toFixed(2)}" fill="${sand}"/>`;
+    }
+  }
+  // concentric arcs, bottom-left
+  const cx = 60 + rnd() * 30, cy = 150;
+  for (let r = 26; r <= 110; r += 14) {
+    s += `<circle cx="${cx.toFixed(1)}" cy="${cy}" r="${r}" fill="none" stroke="${ink}" stroke-width="1" opacity="${(0.5 - r / 400).toFixed(2)}"/>`;
+  }
+  // signal wave across the middle
+  const pts = [];
+  const n = 9;
+  for (let i = 0; i <= n; i++) {
+    const x = 30 + i * ((560 - 40) / n);
+    const y = 55 + Math.sin(i * (1.2 + rnd()) + rnd() * 6) * (18 + rnd() * 14);
+    pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${accent}" stroke-width="2"/>`;
+  // sparks
+  for (let i = 0; i < 3; i++) {
+    s += `<circle cx="${(90 + rnd() * 480).toFixed(1)}" cy="${(20 + rnd() * 120).toFixed(1)}" r="${(2.2 + rnd() * 2.4).toFixed(1)}" fill="${accent}"/>`;
+  }
+  // one thin outline ring for air
+  s += `<circle cx="${(430 + rnd() * 60).toFixed(1)}" cy="${(40 + rnd() * 60).toFixed(1)}" r="${(16 + rnd() * 14).toFixed(1)}" fill="none" stroke="${ink}" stroke-width="1" opacity="0.35"/>`;
+  return `<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${s}</svg>`;
+}
+
+const H3_ICONS = {
+  insight: '<svg class="h3-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2"/><circle cx="8" cy="8" r="1.6" fill="currentColor" stroke="none"/></svg>',
+  x: '<svg class="h3-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 2.5l11 11M13.5 2.5l-11 11"/></svg>',
+  blog: '<svg class="h3-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="1.8" width="10" height="12.4" rx="1"/><path d="M5.5 5h5M5.5 8h5M5.5 11h3"/></svg>',
+  pod: '<svg class="h3-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5.8" y="1.8" width="4.4" height="7" rx="2.2"/><path d="M3.2 7.5a4.8 4.8 0 0 0 9.6 0M8 12.2v2M5.8 14.2h4.4"/></svg>',
+};
+
+// Swap the emoji-lead section h3s for icon + tracked-spacing labels.
+function decorateH3(html) {
+  return html.replace(/<h3>([^<]*)<\/h3>/g, (m, t) => {
+    const txt = t.trim();
+    if (txt.startsWith('🧭')) return `<h3 class="ins-h">${H3_ICONS.insight}<span>${txt.replace(/^🧭\s*/, '')}</span></h3>`;
+    if (txt.startsWith('𝕏')) return `<h3>${H3_ICONS.x}<span>${txt.replace(/^𝕏\s*\/?\s*/, '')}</span></h3>`;
+    if (txt.startsWith('🎙')) return `<h3>${H3_ICONS.pod}<span>${txt.replace(/^🎙\s*/, '')}</span></h3>`;
+    if (txt.startsWith('📰')) return `<h3>${H3_ICONS.blog}<span>${txt.replace(/^📰\s*/, '')}</span></h3>`;
+    return m;
+  });
+}
+
 async function main() {
   // digests are stored monthly: YYYY-MM.zh.md / YYYY-MM.en.md, one
   // '## YYYY-MM-DD' section per day — fewer files than per-day storage.
@@ -243,8 +321,35 @@ async function main() {
   const avatarFiles = await loadAvatarFiles();
   const langDiv = (l, rec) => {
     if (!rec) return '';
-    const { kw, body } = parseKeywords(rec.md);
-    return `<div class="lang lang-${l}"><div class="kw-row">${kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('')}</div>${injectAvatars(mdToHtml(body), avatarFiles).replaceAll('<h3>🧭', '<h3 class="ins-h">🧭')}</div>`;
+    const { kw, headline, deck, quote, quoteBy, body } = parseKeywords(rec.md);
+    const langZh = l === 'zh';
+    const title = headline || (langZh ? `${rec.key} 简报` : `Briefing · ${rec.key}`);
+    const kicker = langZh ? '封面报道 · COVER STORY' : 'COVER STORY';
+    const plain = body.replace(/https?:\/\/\S+/g, '').replace(/\s/g, '');
+    const minutes = Math.max(1, Math.round(plain.length / 600));
+    const readTime = langZh ? `阅读约 ${minutes} 分钟` : `A ${minutes}-min read`;
+    const storyHead = `
+      <div class="story-head">
+        <div class="story-kicker">${kicker}</div>
+        <h1 class="story-title">${escapeHtml(title)}</h1>
+        ${deck ? `<div class="story-deck">${escapeHtml(deck)}</div>` : ''}
+        <div class="story-meta">${readTime} · Follow Builders</div>
+      </div>
+      <div class="story-art">${coverArt(rec.key + l)}</div>`;
+    const kwRow = `<div class="kw-row">${kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('')}</div>`;
+    let html = `${storyHead}${kwRow}${injectAvatars(mdToHtml(body), avatarFiles)}`;
+    html = decorateH3(html);
+    if (quote) {
+      const pq = `<aside class="pullquote"><span class="pq-mark">「</span><div class="pq-text">${escapeHtml(quote)}</div>${quoteBy ? `<div class="pq-by">${escapeHtml(quoteBy)}</div>` : ''}</aside>`;
+      const start = html.indexOf('<p class="callout">');
+      if (start > -1) {
+        const end = html.indexOf('</p>', start) + 4;
+        html = html.slice(0, end) + pq + html.slice(end);
+      } else {
+        html = pq + html;
+      }
+    }
+    return `<div class="lang lang-${l}">${html}</div>`;
   };
 
   // "today's hot topics" chips were removed from the page head by user request;
@@ -443,6 +548,25 @@ async function main() {
 
   footer.site { margin-top: 40px; text-align: center; font-family: var(--sans); font-size: 11.5px; color: var(--muted); }
 
+  .story-head { margin: 2px 0 4px; }
+  .story-kicker {
+    font-family: var(--sans); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.32em; color: var(--accent);
+  }
+  .story-title { font-size: 31px; font-weight: 900; line-height: 1.35; margin: 10px 0 8px; }
+  .story-deck { font-size: 15px; color: var(--muted); line-height: 1.9; }
+  .story-meta { font-family: var(--sans); font-size: 11px; color: var(--muted); margin-top: 10px; letter-spacing: 0.08em; }
+  .story-art { margin: 14px 0 4px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 0; }
+  .story-art svg { display: block; width: 100%; height: auto; }
+  .pullquote {
+    margin: 1.6em 0; padding: 16px 12px 14px;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .pq-mark { display: block; font-size: 40px; line-height: 0.55; color: var(--accent); font-weight: 900; }
+  .pq-text { font-size: 18px; line-height: 1.9; margin: 12px 0 6px; font-weight: 700; }
+  .pq-by { font-family: var(--sans); font-size: 11.5px; color: var(--muted); letter-spacing: 0.1em; }
+  article h3 .h3-ico { width: 13px; height: 13px; flex: none; }
 </style>
 </head>
 <body id="top" data-lang="zh">
