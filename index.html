@@ -6,152 +6,184 @@
 <title>AI Builders Digest</title>
 <style>
   :root {
-    --bg: #f6f8fa; --card: #fff; --text: #1f2328; --muted: #656d76;
-    --border: #d8dee4; --accent: #0969da;
+    --bg: #f5f1e8;      /* warm ivory paper */
+    --card: #fdfbf5;    /* brighter paper */
+    --text: #211d16;    /* warm ink */
+    --muted: #8b8271;   /* faded ink */
+    --border: #e4dcc9;  /* hairline sand */
+    --accent: #a4502e;  /* terracotta */
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
-    font-size: 15px; line-height: 1.75;
+    font-family: "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, "Times New Roman", serif;
+    font-size: 15.5px; line-height: 1.9;
   }
-  .wrap { max-width: 1060px; margin: 0 auto; padding: 36px 20px 90px; }
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 252px; gap: 26px; align-items: start; margin-top: 10px; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 34px 20px 90px; }
+
+  /* ---------- masthead ---------- */
+  .page-head {
+    text-align: center; padding: 14px 0 18px;
+    border-top: 4px solid var(--text);
+    border-bottom: 1px solid var(--text);
+  }
+  .page-head h1 {
+    margin: 14px 0 10px; font-size: 44px; font-weight: 700;
+    letter-spacing: 0.04em; line-height: 1.2;
+  }
+  .mast-kicker {
+    font-family: var(--sans); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.42em; text-indent: 0.42em; color: var(--accent);
+  }
+  .mast-meta { font-family: var(--sans); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
+
+  /* ---------- two-column layout ---------- */
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) 252px;
+    gap: 30px; align-items: start; margin-top: 22px;
+  }
   .main { min-width: 0; }
-  .day-bar { font-size: 13px; font-weight: 600; color: var(--muted); }
   .side { position: sticky; top: 16px; }
-  .side .card { margin-top: 0; padding: 14px 12px; }
-  .side .cal-head { margin-bottom: 8px; }
-  .side .cal-title { font-size: 12.5px; }
-  .side .cal-btn { font-size: 11.5px; padding: 4px 8px; }
-  .side .cal-week { gap: 4px; margin-bottom: 4px; }
-  .side .cal-week span { font-size: 10.5px; }
-  .side .cal-grid { gap: 4px; }
-  .side .cal-cell { padding: 6px 0; border-radius: 6px; }
-  .side .cal-cell .dn { font-size: 12px; }
   @media (max-width: 780px) {
     .layout { grid-template-columns: 1fr; }
     .side { position: static; }
   }
-  .page-head h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: 0.5px; }
-  .page-head p { margin: 0; color: var(--muted); font-size: 13px; }
+
   .card {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px 22px; margin-top: 24px;
+    border-radius: 3px; padding: 18px 16px;
   }
-  .cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .cal-title { font-size: 13.5px; font-weight: 600; }
-  .cal-nav { display: flex; gap: 6px; }
+
+  /* ---------- date line ---------- */
+  .day-bar {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--sans); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.18em; color: var(--muted);
+  }
+  .day-bar::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  /* ---------- calendar (sidebar) ---------- */
+  .side .card { margin-top: 0; padding: 14px 12px; }
+  .cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .cal-title { font-size: 13px; font-weight: 700; letter-spacing: 0.05em; }
+  .cal-nav { display: flex; gap: 4px; }
   .cal-btn {
-    font-family: inherit; font-size: 13px; line-height: 1.2; color: var(--muted);
-    background: #fff; border: 1px solid var(--border); border-radius: 8px;
-    padding: 5px 12px; cursor: pointer;
+    font-family: var(--sans); font-size: 11.5px; line-height: 1.2; color: var(--muted);
+    background: transparent; border: 1px solid var(--border); border-radius: 2px;
+    padding: 4px 8px; cursor: pointer;
   }
   .cal-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
-  .cal-btn:disabled { opacity: 0.35; cursor: default; }
-  .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 6px; }
-  .cal-week span { text-align: center; font-size: 11px; color: var(--muted); }
-  p.has-avatar { display: flow-root; }
-  .avatar {
-    float: left; width: 42px; height: 42px; border-radius: 50%;
-    margin: 3px 12px 2px 0; border: 1px solid var(--border); background: #f6f8fa;
-  }
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .cal-btn:disabled { opacity: 0.3; cursor: default; }
+  .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+  .cal-week span { text-align: center; font-family: var(--sans); font-size: 10px; color: var(--muted); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .cal-cell {
     display: block; text-align: center; text-decoration: none;
-    border: 1px solid var(--border); border-radius: 8px; padding: 8px 2px;
-    background: #fafbfc;
+    border: 1px solid transparent; border-radius: 2px; padding: 6px 0;
+    background: transparent;
   }
-  .cal-cell .dn { display: block; font-size: 14px; font-weight: 600; color: #9aa4ae; }
-  .cal-cell.out { opacity: 0.35; }
-  a.cal-cell { cursor: pointer; }
+  .cal-cell .dn { display: block; font-size: 12px; font-weight: 600; color: #b3a891; }
+  .cal-cell.out { opacity: 0.4; }
   a.cal-cell:hover { border-color: var(--accent); }
-  .cal-cell.c1 { background: #f2fbf4; border-color: #d8efdd; }
-  .cal-cell.c2 { background: #e3f6e8; border-color: #bfe3c8; }
-  .cal-cell.c3 { background: #d0eed9; border-color: #a5d9b2; }
-  .cal-cell.c4 { background: #b9e5c6; border-color: #8ccf9e; }
-  .cal-cell.c1 .dn, .cal-cell.c2 .dn, .cal-cell.c3 .dn, .cal-cell.c4 .dn { color: #116329; }
-  .cal-cell.today { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .cal-cell.c1 { background: #edf2e2; } .cal-cell.c2 { background: #dfe9d2; }
+  .cal-cell.c3 { background: #cdddBC; } .cal-cell.c4 { background: #b7cda3; }
+  .cal-cell.c1 .dn, .cal-cell.c2 .dn, .cal-cell.c3 .dn, .cal-cell.c4 .dn { color: #3f5230; }
+  .cal-cell.today { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
   .cal-cell.today .dn { color: var(--accent); }
-  .cal-cell.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .cal-cell.sel { border-color: var(--accent); }
   .cal-cell.sel .dn { color: var(--accent); }
+
+  /* ---------- article ---------- */
   article.day { display: none; }
   article.day.active { display: block; margin-top: 0; }
   .day-empty {
     margin-top: 0; background: var(--card); border: 1px dashed var(--border);
-    border-radius: 12px; padding: 36px 20px; text-align: center; color: var(--muted);
+    border-radius: 3px; padding: 42px 20px; text-align: center; color: var(--muted);
   }
   article {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 22px 30px 26px; margin-top: 0;
-    scroll-margin-top: 16px; font-size: 15px; line-height: 1.85;
+    border-radius: 3px; padding: 30px 36px 34px; margin-top: 0;
+    scroll-margin-top: 16px; font-size: 15.5px; line-height: 1.95;
   }
   article h3 {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13.5px; font-weight: 600; letter-spacing: 2px;
-    color: var(--muted); margin: 1.9em 0 0.7em; padding-bottom: 7px;
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--sans); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.3em; color: var(--accent);
+    margin: 2em 0 0.9em; padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
   }
-  article h4 { font-size: 16px; font-weight: 650; margin: 1.3em 0 0.3em; line-height: 1.5; }
-  article p { margin: 0.75em 0; text-align: justify; }
+  article h3.ins-h { color: var(--accent); }
+  article h4 { font-size: 17px; font-weight: 700; margin: 1.5em 0 0.4em; line-height: 1.6; }
+  article p { margin: 0.85em 0; text-align: justify; }
   article p.callout {
-    background: #f0f7f1; border-left: 3px solid #40c463; border-radius: 6px;
-    padding: 9px 14px; margin: 1em 0; text-align: left;
+    background: transparent; border-left: 3px solid var(--accent);
+    border-radius: 0; padding: 4px 0 4px 20px; margin: 1.1em 0;
+    font-size: 16.5px; line-height: 2; text-align: left;
   }
   article strong { font-weight: 700; }
-  strong.num { color: #116329; font-weight: 700; font-style: normal; }
-  .src { margin: -3px 0 1.15em; }
+  strong.num { color: var(--accent); font-weight: 700; font-style: normal; }
+  article ol { margin: 0.5em 0 1.1em; padding-left: 22px; }
+  article ol li { margin: 0.45em 0; }
+  article ol li::marker { color: var(--accent); font-weight: 700; }
+  .src { margin: -4px 0 1.2em; }
   .src-link {
     display: inline-flex; align-items: center; gap: 5px;
-    font-size: 12px; line-height: 1.4; color: var(--muted);
-    background: #f6f8fa; border: 1px solid var(--border); border-radius: 999px;
-    padding: 2.5px 11px 2.5px 9px; text-decoration: none;
+    font-family: var(--sans); font-size: 11.5px; line-height: 1.5; color: var(--muted);
+    background: transparent; border: none; border-bottom: 1px solid var(--border);
+    border-radius: 0; padding: 1px 0; text-decoration: none;
   }
-  .src-link:hover { color: var(--accent); border-color: var(--accent); background: #f0f6ff; }
+  .src-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
   .src-link svg { flex: none; }
   .src-link span { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   a { color: var(--accent); text-decoration: none; }
   article em { color: var(--muted); }
-  blockquote { margin: 0.8em 0; padding: 2px 14px; border-left: 3px solid var(--border); color: var(--muted); }
-  hr { border: none; border-top: 1px solid var(--border); margin: 1.2em 0; }
-  article ol { margin: 0.5em 0 1.1em; padding-left: 22px; }
-  article ol li { margin: 0.4em 0; }
-  article ol li::marker { color: var(--accent); font-weight: 700; }
-  article h3.ins-h { color: #116329; border-bottom-color: #40c463; }
+  blockquote { margin: 0.8em 0; padding: 2px 16px; border-left: 2px solid var(--accent); color: var(--muted); }
   .empty { color: var(--muted); }
-  footer.site { margin-top: 34px; text-align: center; font-size: 12px; color: var(--muted); }
-  /* language toggle */
+
+  /* ---------- avatars ---------- */
+  p.has-avatar { display: flow-root; }
+  .avatar {
+    float: left; width: 46px; height: 46px; border-radius: 2px;
+    margin: 4px 14px 3px 0; border: 1px solid var(--border);
+    background: var(--bg); filter: saturate(0.88);
+  }
+
+  /* ---------- keyword tags ---------- */
+  .kw-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 2px 0 6px; }
+  .kw {
+    display: inline-block; font-family: var(--sans); font-size: 11px; line-height: 1.7;
+    padding: 2px 10px; border-radius: 2px;
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    font-weight: 600; letter-spacing: 0.06em;
+  }
+  .kw:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ---------- language toggle ---------- */
   body[data-lang="zh"] .lang-en { display: none; }
   body[data-lang="en"] .lang-zh { display: none; }
   body[data-lang="zh"] article.no-zh .lang-en { display: block; }
   body[data-lang="en"] article.no-en .lang-zh { display: block; }
-  .lang-note { display: none; margin: 4px 0 14px; padding: 8px 12px; font-size: 12.5px; color: #9a6700; background: #fff8c5; border: 1px solid rgba(212, 167, 44, 0.4); border-radius: 6px; }
+  .lang-note { display: none; margin: 0 0 14px; padding: 8px 12px; font-family: var(--sans); font-size: 12px; color: #8a6d1f; background: #f4ecd4; border: 1px solid #ddc98a; border-radius: 2px; }
   body[data-lang="en"] article.no-en .lang-note:not(.note-zh) { display: block; }
   body[data-lang="zh"] article.no-zh .lang-note.note-zh { display: block; }
   .lang-switch {
     position: fixed; bottom: 24px; right: 18px; z-index: 50;
     display: flex; gap: 2px; padding: 3px;
-    background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border);
-    border-radius: 999px; box-shadow: 0 1px 10px rgba(0, 0, 0, 0.08);
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    background: rgba(253, 251, 245, 0.94); border: 1px solid var(--border);
+    border-radius: 2px; box-shadow: 0 1px 8px rgba(60, 50, 30, 0.12);
   }
-  .kw {
-    display: inline-block; font-size: 12.5px; line-height: 1.6;
-    padding: 2px 12px; border-radius: 999px;
-    background: #ecf7ee; border: 1px solid #bfe3c8; color: #116329;
-    font-weight: 600;
-  }
-  a.kw:hover { border-color: var(--accent); color: var(--accent); background: #e8f3fd; }
-  .kw-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 4px 0 2px; }
-  .kw-row .kw { font-size: 12px; padding: 1.5px 11px; }
   .sw-btn {
     border: none; background: transparent; cursor: pointer;
-    font-family: inherit; font-size: 12.5px; line-height: 1.3;
-    padding: 4px 13px; border-radius: 999px; color: var(--muted);
+    font-family: var(--sans); font-size: 12px; line-height: 1.3;
+    padding: 4px 13px; border-radius: 1px; color: var(--muted);
   }
   .sw-btn:hover { color: var(--text); }
-  .sw-btn.on { background: var(--accent); color: #fff; }
+  .sw-btn.on { background: var(--text); color: var(--bg); }
+
+  footer.site { margin-top: 40px; text-align: center; font-family: var(--sans); font-size: 11.5px; color: var(--muted); }
+
 </style>
 </head>
 <body id="top" data-lang="zh">
@@ -161,8 +193,9 @@
 </div>
 <div class="wrap">
   <div class="page-head">
+    <div class="mast-kicker"><span class="lang-zh">每 日 AI 行 业 观 察</span><span class="lang-en">A DAILY AI INDUSTRY BRIEF</span></div>
     <h1>AI Builders Digest</h1>
-    <p>2 期 · 最近更新 2026-09-23 · 每天早上 8:00 自动生成</p>
+    <div class="mast-meta"><span class="lang-zh">第 2 期 · 每天早上 8:00 更新 · 2026-09-23 刊</span><span class="lang-en">Issue 2 · Updated daily at 8:00 AM · 2026-09-23</span></div>
   </div>
 
   <div class="day-bar" id="dayBar"></div>
