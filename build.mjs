@@ -361,7 +361,7 @@ async function main() {
     gap: 28px; align-items: start; margin-top: 20px;
   }
   .main { min-width: 0; }
-  .side { position: sticky; top: 16px; }
+  .side { position: sticky; top: 100px; }
   @media (max-width: 780px) {
     .layout { grid-template-columns: 1fr; }
     .side { position: static; }
