@@ -406,26 +406,26 @@ async function main() {
   }
   article { background: transparent; border: none; padding: 0; margin-top: 0; }
   article .lang { column-count: 2; column-gap: 30px; column-rule: 1px solid var(--border); }
-  .story-head, .kw-row, .pullquote, article h3 { column-span: all; }
+  .story-head, .kw-row, article h3 { column-span: all; }
   article h3 {
     display: flex; align-items: center; justify-content: center; gap: 10px;
     font-size: 19px; font-weight: 700; letter-spacing: 0.12em; color: var(--text);
-    margin: 1.6em 0 0.9em; padding-top: 12px; border-top: 1px solid var(--text);
+    margin: 1.2em 0 0.7em; padding-top: 10px; border-top: 1px solid var(--text);
   }
   article h3.ins-h { color: var(--text); }
   article h4 { font-size: 16.5px; font-weight: 700; margin: 1.5em 0 0.4em; line-height: 1.6; }
-  article p { margin: 0.85em 0; text-align: justify; }
-  article p.callout { background: transparent; border-left: none; border-radius: 0; padding: 0; }
+  article p { margin: 0.7em 0; text-align: justify; }
+  article p.callout { background: transparent; border-left: none; border-radius: 0; padding: 0; break-inside: avoid; }
   p.callout::first-letter {
     font-family: Georgia, serif; font-size: 44px; font-weight: 700;
     float: left; line-height: 0.95; padding: 5px 8px 0 0;
   }
   article strong { font-weight: 700; }
   strong.num { font-weight: 700; font-style: normal; }
-  article ol { margin: 0.5em 0 1.1em; padding-left: 22px; }
-  article ol li { margin: 0.45em 0; }
+  article ol { margin: 0.4em 0 0.9em; padding-left: 22px; }
+  article ol li { margin: 0.45em 0; break-inside: avoid; }
   article ol li::marker { font-weight: 700; }
-  .src { margin: -4px 0 1.2em; }
+  .src { display: inline-block; margin: 0 10px 0.4em 0; }
   .src-link {
     display: inline-flex; align-items: center; gap: 5px;
     font-size: 11.5px; line-height: 1.5; color: var(--text);
@@ -448,7 +448,7 @@ async function main() {
   }
 
   /* ---------- keyword tags: ink chips ---------- */
-  .kw-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 6px 0 6px; }
+  .kw-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 4px 0 2px; }
   .kw {
     display: inline-block; font-size: 13.5px; line-height: 1.7;
     padding: 5px 16px; border-radius: 2px;
@@ -468,7 +468,7 @@ async function main() {
 
   /* ---------- pull quote ---------- */
   .pullquote {
-    margin: 1.6em 0; padding: 16px 12px 14px;
+    margin: 1.2em 0; padding: 14px 12px 12px;
     border-top: 3px double var(--text); border-bottom: 3px double var(--text);
     text-align: center;
   }
