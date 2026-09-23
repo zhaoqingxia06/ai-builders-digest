@@ -210,92 +210,76 @@
   .theme-btn:hover { color: var(--accent); }
   .theme-btn.on { background: var(--accent); color: #fff; }
 
-  /* ---------- vintage newspaper theme (Monocle-style) ---------- */
+  /* ---------- bright theme (Apple / Google style) ---------- */
   body[data-theme="press"] {
-    --bg: #d8cfb8; --card: #f5efdf; --text: #211c12; --muted: #6e6550;
-    --border: #d6cab0; --accent: #211c12; --soft: #ece3cc; --red: #211c12;
-    --sans: Georgia, "Songti SC", "Noto Serif SC", serif;
+    --bg: #f8f9fc; --card: #ffffff; --text: #202124; --muted: #5f6368;
+    --border: #e8eaed; --accent: #1a73e8; --soft: #e8f0fe; --red: #d93025;
   }
-  body[data-theme="press"] { background: #d8cfb8; }
+  body[data-theme="press"] { background: linear-gradient(180deg, #f8f9fc 0%, #eef2f8 100%); }
   body[data-theme="press"] .wrap {
-    background: var(--card); max-width: 1120px; padding: 40px 44px 60px;
-    box-shadow: 0 3px 30px rgba(70, 58, 34, 0.28);
+    background: #fff; max-width: 1120px; padding: 44px 48px 64px;
+    border-radius: 24px; box-shadow: 0 10px 44px rgba(32, 33, 36, 0.12);
   }
-  body[data-theme="press"] .page-head { border-bottom: none; padding-bottom: 4px; }
+  body[data-theme="press"] .page-head { border-bottom: 1px solid var(--border); padding-bottom: 20px; }
   body[data-theme="press"] .page-head::after { display: none; }
   body[data-theme="press"] .page-head h1 {
-    font-family: Georgia, "Songti SC", serif; font-size: 52px; font-weight: 900;
-    letter-spacing: 0.1em; text-transform: uppercase; margin: 12px 0 10px;
+    font-size: 52px; font-weight: 800; letter-spacing: -0.02em; margin: 10px 0 12px;
+    background: linear-gradient(90deg, #4285f4 0%, #9b72cb 35%, #d96570 70%, #f29900 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
   }
-  body[data-theme="press"] .mast-meta {
-    text-transform: uppercase; letter-spacing: 0.28em; color: var(--text);
-    border-top: 2.5px solid var(--text); border-bottom: 2.5px solid var(--text);
-    padding: 7px 0; margin-top: 6px; font-weight: 700;
-  }
-  body[data-theme="press"] .story-title {
-    font-family: Georgia, "Songti SC", serif; font-size: 34px; font-weight: 900;
-    text-transform: uppercase; text-align: center; letter-spacing: 0.04em; line-height: 1.3;
-  }
-  body[data-theme="press"] .story-deck {
-    font-family: Georgia, "Songti SC", serif; font-style: italic;
-    text-align: center; color: #3d372a;
-  }
-  body[data-theme="press"] .story-meta { text-align: center; text-transform: uppercase; }
-  body[data-theme="press"] article {
-    background: transparent; border: none; padding: 0;
-  }
-  body[data-theme="press"] article .lang {
-    column-count: 2; column-gap: 30px; column-rule: 1px solid var(--border);
-  }
+  body[data-theme="press"] .mast-meta { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 2px; }
+  body[data-theme="press"] .story-title { font-size: 34px; font-weight: 800; color: #202124; letter-spacing: -0.01em; }
+  body[data-theme="press"] .story-deck { color: #5f6368; }
+  body[data-theme="press"] article .lang { column-count: 2; column-gap: 44px; }
   body[data-theme="press"] .story-head, body[data-theme="press"] .kw-row,
-  body[data-theme="press"] .pullquote, body[data-theme="press"] article h3 {
-    column-span: all;
-  }
-  body[data-theme="press"] article h3 {
-    justify-content: center; font-size: 19px; letter-spacing: 0.12em;
-    color: var(--text); border-bottom: none; margin-top: 1.6em;
-    border-top: 1px solid var(--text); padding-top: 12px;
-  }
+  body[data-theme="press"] .pullquote, body[data-theme="press"] article h3 { column-span: all; }
+  body[data-theme="press"] article h3 { color: #202124; border-bottom: 1px solid var(--border); }
+  body[data-theme="press"] article h3 .h3-ico { color: #4285f4; }
+  body[data-theme="press"] article h3:nth-of-type(2) .h3-ico { color: #ea4335; }
+  body[data-theme="press"] article h3:nth-of-type(3) .h3-ico { color: #34a853; }
+  body[data-theme="press"] article h3:nth-of-type(4) .h3-ico { color: #f29900; }
   body[data-theme="press"] p.callout {
-    background: transparent; border-left: none; border-radius: 0; padding: 0;
-  }
-  body[data-theme="press"] p.callout::first-letter {
-    font-family: Georgia, serif; font-size: 44px; font-weight: 700;
-    float: left; line-height: 0.95; padding: 5px 8px 0 0;
+    background: #e8f0fe; border-left: 4px solid #4285f4;
+    border-radius: 12px; padding: 14px 18px;
   }
   body[data-theme="press"] .pullquote {
-    background: transparent; border-left: none;
-    border-top: 3px double var(--text); border-bottom: 3px double var(--text);
+    background: #f8f9fa; border-left: none; border-radius: 16px; padding: 22px 24px;
   }
-  body[data-theme="press"] .pq-text { font-style: italic; }
-  body[data-theme="press"] .pq-mark { font-family: Georgia, serif; }
-  body[data-theme="press"] .kw {
-    background: var(--text); border-color: var(--text); color: var(--card); font-weight: 700;
-  }
-  body[data-theme="press"] .avatar { filter: grayscale(1) contrast(1.06); }
-  body[data-theme="press"] .src-link { color: var(--text); border-bottom-color: #b9ac8d; }
-  body[data-theme="press"] .src-link:hover { color: var(--muted); }
-  body[data-theme="press"] strong.num { color: var(--text); }
-  body[data-theme="press"] article ol li::marker { color: var(--text); }
-  body[data-theme="press"] .cal-btn { background: transparent; }
-  body[data-theme="press"] .cal-cell.c1 { background: #ece4cf; }
-  body[data-theme="press"] .cal-cell.c2 { background: #e0d5b9; }
-  body[data-theme="press"] .cal-cell.c3 { background: #d2c5a2; }
-  body[data-theme="press"] .cal-cell.c4 { background: #c1b289; }
+  body[data-theme="press"] .pq-mark { color: #4285f4; }
+  body[data-theme="press"] .avatar { border-radius: 50%; border: none; box-shadow: 0 1px 6px rgba(60, 64, 67, 0.28); }
+  body[data-theme="press"] .kw { color: #fff; font-weight: 700; }
+  body[data-theme="press"] .kw-row .kw:nth-of-type(1) { background: #4285f4; border-color: #4285f4; }
+  body[data-theme="press"] .kw-row .kw:nth-of-type(2) { background: #ea4335; border-color: #ea4335; }
+  body[data-theme="press"] .kw-row .kw:nth-of-type(3) { background: #34a853; border-color: #34a853; }
+  body[data-theme="press"] .kw:hover { filter: brightness(1.08); }
+  body[data-theme="press"] .cal-btn { background: #fff; }
+  body[data-theme="press"] .cal-cell.c1 { background: #e8f0fe; }
+  body[data-theme="press"] .cal-cell.c2 { background: #d2e3fc; }
+  body[data-theme="press"] .cal-cell.c3 { background: #aecbfa; }
+  body[data-theme="press"] .cal-cell.c4 { background: #8ab4f8; }
   body[data-theme="press"] .cal-cell.c1 .dn,
   body[data-theme="press"] .cal-cell.c2 .dn,
   body[data-theme="press"] .cal-cell.c3 .dn,
-  body[data-theme="press"] .cal-cell.c4 .dn { color: #453c28; }
-  body[data-theme="press"] .cal-cell.today { outline-color: var(--text); }
-  body[data-theme="press"] .cal-cell.today .dn { color: var(--text); }
-  body[data-theme="press"] .cal-cell.sel { border-color: var(--text); }
-  body[data-theme="press"] .sw-btn.on, body[data-theme="press"] .theme-btn.on {
-    background: var(--text); color: var(--card);
-  }
+  body[data-theme="press"] .cal-cell.c4 .dn { color: #174ea6; }
+  body[data-theme="press"] .sw-btn.on, body[data-theme="press"] .theme-btn.on { background: #1a73e8; color: #fff; }
   body[data-theme="press"] .lang-switch, body[data-theme="press"] .theme-switch {
-    background: var(--card); border-color: var(--border);
-    box-shadow: 0 1px 8px rgba(70, 58, 34, 0.2);
+    background: #fff; border-color: var(--border); box-shadow: 0 1px 10px rgba(32, 33, 36, 0.16);
   }
+  body[data-theme="press"] .src-link { color: #1a73e8; border-bottom-color: #d2e3fc; }
+  body[data-theme="press"] strong.num { color: #1a73e8; }
+  body[data-theme="press"] article ol li::marker { color: #1a73e8; }
+  /* cover art palette per theme */
+  .story-art .pa-dot { fill: #c9d6e5; }
+  .story-art .pa-line { stroke: #2b3440; }
+  .story-art .pa-ring { stroke: #2b3440; }
+  .story-art .pa-wave { stroke: #0b5cad; }
+  .story-art .pa-spark { fill: #0b5cad; }
+  body[data-theme="press"] .story-art .pa-dot { fill: #d2e3fc; }
+  body[data-theme="press"] .story-art .pa-line { stroke: #5f6368; }
+  body[data-theme="press"] .story-art .pa-ring { stroke: #5f6368; }
+  body[data-theme="press"] .story-art .pa-wave { stroke: #4285f4; }
+  body[data-theme="press"] .story-art .pa-spark { fill: #ea4335; }
+  .h3-ico { width: 13px; height: 13px; flex: none; }
 </style>
 </head>
 <body id="top" data-lang="zh">
