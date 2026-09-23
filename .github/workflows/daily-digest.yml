@@ -31,7 +31,7 @@ jobs:
         run: node scripts/remix.mjs
 
       - name: build site
-        run: node site/build.mjs
+        run: node build.mjs
 
       - name: commit & push
         run: |
