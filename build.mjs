@@ -221,53 +221,6 @@ function injectAvatars(html, avatarFiles) {
 
 // ---------- generative cover art & section icons ----------
 
-// Deterministic editorial SVG "engraving" seeded by the date — halftone dots,
-// concentric arcs and a signal wave; every day gets a different plate.
-function coverArt(seed) {
-  let h = 2166136261;
-  for (const c of seed) {
-    h ^= c.charCodeAt(0);
-    h = Math.imul(h, 16777619);
-  }
-  const rnd = () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822519);
-    h = Math.imul(h ^ (h >>> 13), 3266489917);
-    return ((h ^= h >>> 16) >>> 0) / 4294967296;
-  };
-  const sand = '#c9d6e5', ink = '#2b3440', accent = '#0b5cad';
-  let s = '';
-  // halftone dot field on the right
-  for (let gx = 0; gx < 12; gx++) {
-    for (let gy = 0; gy < 8; gy++) {
-      const x = 470 + gx * 20 + (gy % 2) * 10;
-      const y = 14 + gy * 19;
-      const r = 0.7 + 1.9 * Math.abs(Math.sin(gx * 0.7 + gy * 0.5 + rnd() * 2));
-      s += `<circle cx="${x}" cy="${y}" r="${r.toFixed(2)}" fill="${sand}"/>`;
-    }
-  }
-  // concentric arcs, bottom-left
-  const cx = 60 + rnd() * 30, cy = 150;
-  for (let r = 26; r <= 110; r += 14) {
-    s += `<circle cx="${cx.toFixed(1)}" cy="${cy}" r="${r}" fill="none" stroke="${ink}" stroke-width="1" opacity="${(0.5 - r / 400).toFixed(2)}"/>`;
-  }
-  // signal wave across the middle
-  const pts = [];
-  const n = 9;
-  for (let i = 0; i <= n; i++) {
-    const x = 30 + i * ((560 - 40) / n);
-    const y = 55 + Math.sin(i * (1.2 + rnd()) + rnd() * 6) * (18 + rnd() * 14);
-    pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
-  }
-  s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${accent}" stroke-width="2"/>`;
-  // sparks
-  for (let i = 0; i < 3; i++) {
-    s += `<circle cx="${(90 + rnd() * 480).toFixed(1)}" cy="${(20 + rnd() * 120).toFixed(1)}" r="${(2.2 + rnd() * 2.4).toFixed(1)}" fill="${accent}"/>`;
-  }
-  // one thin outline ring for air
-  s += `<circle cx="${(430 + rnd() * 60).toFixed(1)}" cy="${(40 + rnd() * 60).toFixed(1)}" r="${(16 + rnd() * 14).toFixed(1)}" fill="none" stroke="${ink}" stroke-width="1" opacity="0.35"/>`;
-  return `<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${s}</svg>`;
-}
-
 const H3_ICONS = {
   insight: '<svg class="h3-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2"/><circle cx="8" cy="8" r="1.6" fill="currentColor" stroke="none"/></svg>',
   x: '<svg class="h3-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 2.5l11 11M13.5 2.5l-11 11"/></svg>',
@@ -334,8 +287,7 @@ async function main() {
         <h1 class="story-title">${escapeHtml(title)}</h1>
         ${deck ? `<div class="story-deck">${escapeHtml(deck)}</div>` : ''}
         <div class="story-meta">${readTime} · Follow Builders</div>
-      </div>
-      <div class="story-art">${coverArt(rec.key + l)}</div>`;
+      </div>`;
     const kwRow = `<div class="kw-row">${kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('')}</div>`;
     let html = `${storyHead}${kwRow}${injectAvatars(mdToHtml(body), avatarFiles)}`;
     html = decorateH3(html);
@@ -426,13 +378,6 @@ async function main() {
     border-radius: 4px; padding: 18px 16px;
   }
 
-  /* ---------- date line ---------- */
-  .day-bar {
-    display: flex; align-items: center; gap: 12px;
-    font-size: 12.5px; font-weight: 700;
-    letter-spacing: 0.14em; color: var(--muted);
-  }
-  .day-bar::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 
   /* ---------- calendar (sidebar) ---------- */
   .side .card { margin-top: 0; padding: 14px 12px; }
@@ -538,8 +483,6 @@ async function main() {
   .story-title { font-size: 29px; font-weight: 800; line-height: 1.4; margin: 8px 0 8px; color: #10141a; }
   .story-deck { font-size: 15px; color: #495057; line-height: 1.9; }
   .story-meta { font-size: 11.5px; color: var(--muted); margin-top: 10px; letter-spacing: 0.06em; }
-  .story-art { margin: 14px 0 4px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 0; background: #fbfcfe; }
-  .story-art svg { display: block; width: 100%; height: auto; }
 
   /* ---------- pull quote ---------- */
   .pullquote {
@@ -590,7 +533,6 @@ async function main() {
     <div class="mast-meta"><span class="lang-zh">第 ${entries.length} 期 · 每天早上 8:00 更新 · ${todayKey} 刊</span><span class="lang-en">Issue ${entries.length} · Updated daily at 8:00 AM · ${todayKey}</span></div>
   </div>
 
-  <div class="day-bar" id="dayBar"></div>
   <div class="layout">
     <main class="main">
       ${articles}
@@ -643,10 +585,7 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
   var nextBtn = document.getElementById('calNext');
   var nextYearBtn = document.getElementById('calNextYear');
   var todayBtn = document.getElementById('calTodayBtn');
-  var dayBar = document.getElementById('dayBar');
   var dayEmpty = document.getElementById('dayEmpty');
-  var WD_ZH = ['一', '二', '三', '四', '五', '六', '日'];
-  var WD_EN = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
   var MS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   function parseKey(k) { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
@@ -695,12 +634,6 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
     nextYearBtn.disabled = view.y >= today.getFullYear();
   }
 
-  function labelFor(k, empty) {
-    var d = parseKey(k);
-    var zh = d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日 星期' + WD_ZH[(d.getDay() + 6) % 7] + (empty ? ' · 无内容' : '');
-    var en = WD_EN[(d.getDay() + 6) % 7] + ', ' + MS_EN[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + (empty ? ' · no digest' : '');
-    dayBar.innerHTML = '<span class="lang-zh">' + zh + '</span><span class="lang-en">' + en + '</span>';
-  }
 
   function markSel(k) {
     document.querySelectorAll('#calGrid .cal-cell').forEach(function (c) {
@@ -713,14 +646,12 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
       a.classList.toggle('active', a.id === 'd-' + k);
     });
     dayEmpty.hidden = true;
-    labelFor(k, false);
     markSel(k);
   }
 
   function showEmpty(k) {
     document.querySelectorAll('article.day').forEach(function (a) { a.classList.remove('active'); });
     dayEmpty.hidden = false;
-    labelFor(k, true);
     markSel(k);
   }
 
