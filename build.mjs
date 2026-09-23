@@ -169,6 +169,46 @@ function splitMonthly(md) {
   return days;
 }
 
+// ---------- avatars ----------
+
+// tracked builder name (lowercase) -> X handle; file avatars/<handle>.jpg|png
+const AVATARS = {
+  'andrej karpathy': 'karpathy', 'swyx': 'swyx', 'josh woodward': 'joshwoodward',
+  'boris cherny': 'bcherny', 'thibault sottiaux': 'thsottiaux', 'peter yang': 'petergyang',
+  'nan yu': 'thenanyu', 'madhu guru': 'realmadhuguru', 'amanda askell': 'amandaaskell',
+  'cat wu': '_catwu', 'thariq': 'trq212', 'google labs': 'googlelabs',
+  'amjad masad': 'amasad', 'guillermo rauch': 'rauchg', 'alex albert': 'alexalbert__',
+  'aaron levie': 'levie', 'ryo lu': 'ryolu_', 'garry tan': 'garrytan',
+  'matt turck': 'mattturck', 'zara zhang': 'zarazhangrui', 'nikunj kothari': 'nikunj',
+  'peter steinberger': 'steipete', 'dan shipper': 'danshipper',
+  'aditya agarwal': 'adityaag', 'sam altman': 'sama',
+  'claude blog': 'claudeai', 'anthropic engineering': 'anthropicai',
+};
+
+async function loadAvatarFiles() {
+  const files = new Map(); // handle -> filename with extension
+  try {
+    for (const f of await readdir(join(scriptDir, 'avatars'))) {
+      const m = f.match(/^(.+)\.(jpe?g|png)$/i);
+      if (m) files.set(m[1].toLowerCase(), f);
+    }
+  } catch {}
+  return files;
+}
+
+// Prepend the author's avatar to paragraphs that start with a bold name.
+function injectAvatars(html, avatarFiles) {
+  return html.replace(/<p>(<strong>[^<]{1,80}<\/strong>)/g, (m, strong) => {
+    const plain = strong.replace(/<[^>]+>/g, '').toLowerCase();
+    for (const [name, handle] of Object.entries(AVATARS)) {
+      if (plain.includes(name) && avatarFiles.has(handle)) {
+        return `<p class="has-avatar"><img class="avatar" src="avatars/${avatarFiles.get(handle)}" alt="" loading="lazy">` + strong;
+      }
+    }
+    return m;
+  });
+}
+
 async function main() {
   // digests are stored monthly: YYYY-MM.zh.md / YYYY-MM.en.md, one
   // '## YYYY-MM-DD' section per day — fewer files than per-day storage.
@@ -200,10 +240,11 @@ async function main() {
   const latestKey = entries[0]?.key || '';
 
   const kwChips = (md) => parseKeywords(md).kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('');
+  const avatarFiles = await loadAvatarFiles();
   const langDiv = (l, rec) => {
     if (!rec) return '';
     const { kw, body } = parseKeywords(rec.md);
-    return `<div class="lang lang-${l}"><div class="kw-row">${kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('')}</div>${mdToHtml(body).replaceAll('<h3>🧭', '<h3 class="ins-h">🧭')}</div>`;
+    return `<div class="lang lang-${l}"><div class="kw-row">${kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('')}</div>${injectAvatars(mdToHtml(body), avatarFiles).replaceAll('<h3>🧭', '<h3 class="ins-h">🧭')}</div>`;
   };
 
   // "today's hot topics" chips were removed from the page head by user request;
@@ -270,6 +311,11 @@ async function main() {
   .cal-btn:disabled { opacity: 0.35; cursor: default; }
   .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 6px; }
   .cal-week span { text-align: center; font-size: 11px; color: var(--muted); }
+  p.has-avatar { display: flow-root; }
+  .avatar {
+    float: left; width: 42px; height: 42px; border-radius: 50%;
+    margin: 3px 12px 2px 0; border: 1px solid var(--border); background: #f6f8fa;
+  }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
   .cal-cell {
     display: block; text-align: center; text-decoration: none;
