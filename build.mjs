@@ -641,7 +641,7 @@ async function main() {
 <body id="top" data-lang="zh">
 <div class="theme-switch" role="group" aria-label="主题 / Theme">
   <button class="theme-btn" type="button" data-theme="classic"><span class="lang-zh">现代</span><span class="lang-en">Modern</span></button>
-  <button class="theme-btn" type="button" data-theme="press"><span class="lang-zh">报纸</span><span class="lang-en">Newspaper</span></button>
+  <button class="theme-btn" type="button" data-theme="press"><span class="lang-zh">明亮</span><span class="lang-en">Bright</span></button>
 </div>
 <div class="lang-switch" role="group" aria-label="语言 / Language">
   <button class="sw-btn" type="button" data-lang="zh">中文</button>
