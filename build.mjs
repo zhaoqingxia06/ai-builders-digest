@@ -8,10 +8,10 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 // Resolve paths relative to this script so the build runs both locally
-// (~/.follow-builders) and inside GitHub Actions (repo checkout).
-const scriptDir = dirname(fileURLToPath(import.meta.url)); // .../site
-const ROOT = dirname(scriptDir);                           // repo root
-const DIGEST_DIR = join(ROOT, 'digests');
+// (~/.follow-builders/site = repo root) and inside GitHub Actions (repo
+// checkout): digests/ and index.html live next to this file.
+const scriptDir = dirname(fileURLToPath(import.meta.url)); // repo root
+const DIGEST_DIR = join(scriptDir, 'digests');
 const OUT = join(scriptDir, 'index.html');
 
 // ---------- markdown-lite renderer (headings / bold / italic / links / hr) ----------
