@@ -221,6 +221,47 @@ function injectAvatars(html, avatarFiles) {
 
 // ---------- generative cover art & section icons ----------
 
+// Deterministic editorial SVG plate seeded by the date; colors come from
+// CSS (.pa-*) so each theme can tint it differently.
+function coverArt(seed) {
+  let h = 2166136261;
+  for (const c of seed) {
+    h ^= c.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  const rnd = () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822519);
+    h = Math.imul(h ^ (h >>> 13), 3266489917);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+  let s = '';
+  for (let gx = 0; gx < 12; gx++) {
+    for (let gy = 0; gy < 8; gy++) {
+      const x = 470 + gx * 20 + (gy % 2) * 10;
+      const y = 14 + gy * 19;
+      const r = 0.7 + 1.9 * Math.abs(Math.sin(gx * 0.7 + gy * 0.5 + rnd() * 2));
+      s += `<circle cx="${x}" cy="${y}" r="${r.toFixed(2)}" class="pa-dot"/>`;
+    }
+  }
+  const cx = 60 + rnd() * 30, cy = 150;
+  for (let r = 26; r <= 110; r += 14) {
+    s += `<circle cx="${cx.toFixed(1)}" cy="${cy}" r="${r}" class="pa-line" fill="none" stroke-width="1" opacity="${(0.5 - r / 400).toFixed(2)}"/>`;
+  }
+  const pts = [];
+  const n = 9;
+  for (let i = 0; i <= n; i++) {
+    const x = 30 + i * ((560 - 40) / n);
+    const y = 55 + Math.sin(i * (1.2 + rnd()) + rnd() * 6) * (18 + rnd() * 14);
+    pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  s += `<polyline points="${pts.join(' ')}" class="pa-wave" fill="none" stroke-width="2"/>`;
+  for (let i = 0; i < 3; i++) {
+    s += `<circle cx="${(90 + rnd() * 480).toFixed(1)}" cy="${(20 + rnd() * 120).toFixed(1)}" r="${(2.2 + rnd() * 2.4).toFixed(1)}" class="pa-spark"/>`;
+  }
+  s += `<circle cx="${(430 + rnd() * 60).toFixed(1)}" cy="${(40 + rnd() * 60).toFixed(1)}" r="${(16 + rnd() * 14).toFixed(1)}" class="pa-ring" fill="none" stroke-width="1" opacity="0.35"/>`;
+  return `<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${s}</svg>`;
+}
+
 const H3_ICONS = {
   insight: '<svg class="h3-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2"/><circle cx="8" cy="8" r="1.6" fill="currentColor" stroke="none"/></svg>',
   x: '<svg class="h3-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 2.5l11 11M13.5 2.5l-11 11"/></svg>',
@@ -285,7 +326,8 @@ async function main() {
         <h1 class="story-title">${escapeHtml(title)}</h1>
         ${deck ? `<div class="story-deck">${escapeHtml(deck)}</div>` : ''}
         <div class="story-meta">${readTime} · Follow Builders</div>
-      </div>`;
+      </div>
+      <div class="story-art">${coverArt(rec.key + l)}</div>`;
     const kwRow = `<div class="kw-row">${kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('')}</div>`;
     let html = `${storyHead}${kwRow}${injectAvatars(mdToHtml(body), avatarFiles)}`;
     html = decorateH3(html);
