@@ -4,12 +4,15 @@
 // digests below, heatmap cells link to each day's article. No dependencies.
 
 import { readdir, readFile, writeFile } from 'fs/promises';
-import { join } from 'path';
-import { homedir } from 'os';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = join(homedir(), '.follow-builders');
+// Resolve paths relative to this script so the build runs both locally
+// (~/.follow-builders) and inside GitHub Actions (repo checkout).
+const scriptDir = dirname(fileURLToPath(import.meta.url)); // .../site
+const ROOT = dirname(scriptDir);                           // repo root
 const DIGEST_DIR = join(ROOT, 'digests');
-const OUT = join(ROOT, 'site', 'index.html');
+const OUT = join(scriptDir, 'index.html');
 
 // ---------- markdown-lite renderer (headings / bold / italic / links / hr) ----------
 
