@@ -277,13 +277,11 @@ async function main() {
     const { kw, headline, deck, quote, quoteBy, body } = parseKeywords(rec.md);
     const langZh = l === 'zh';
     const title = headline || (langZh ? `${rec.key} 简报` : `Briefing · ${rec.key}`);
-    const kicker = langZh ? '封面报道 · COVER STORY' : 'COVER STORY';
     const plain = body.replace(/https?:\/\/\S+/g, '').replace(/\s/g, '');
     const minutes = Math.max(1, Math.round(plain.length / 600));
     const readTime = langZh ? `阅读约 ${minutes} 分钟` : `A ${minutes}-min read`;
     const storyHead = `
       <div class="story-head">
-        <div class="story-kicker">${kicker}</div>
         <h1 class="story-title">${escapeHtml(title)}</h1>
         ${deck ? `<div class="story-deck">${escapeHtml(deck)}</div>` : ''}
         <div class="story-meta">${readTime} · Follow Builders</div>
@@ -350,10 +348,6 @@ async function main() {
   .page-head::after {
     content: ""; position: absolute; left: 0; right: 0; bottom: -6px;
     height: 1px; background: var(--accent);
-  }
-  .mast-kicker {
-    font-size: 12px; font-weight: 700;
-    letter-spacing: 0.34em; text-indent: 0.34em; color: var(--red);
   }
   .page-head h1 {
     margin: 10px 0 8px; font-size: 36px; font-weight: 800;
@@ -476,10 +470,6 @@ async function main() {
 
   /* ---------- story head ---------- */
   .story-head { margin: 2px 0 6px; }
-  .story-kicker {
-    font-size: 12px; font-weight: 700;
-    letter-spacing: 0.22em; color: var(--red);
-  }
   .story-title { font-size: 29px; font-weight: 800; line-height: 1.4; margin: 8px 0 8px; color: #10141a; }
   .story-deck { font-size: 15px; color: #495057; line-height: 1.9; }
   .story-meta { font-size: 11.5px; color: var(--muted); margin-top: 10px; letter-spacing: 0.06em; }
@@ -551,13 +541,11 @@ async function main() {
     font-family: Georgia, "Songti SC", serif; font-size: 52px; font-weight: 900;
     letter-spacing: 0.1em; text-transform: uppercase; margin: 12px 0 10px;
   }
-  body[data-theme="press"] .mast-kicker { color: var(--text); }
   body[data-theme="press"] .mast-meta {
     text-transform: uppercase; letter-spacing: 0.28em; color: var(--text);
     border-top: 2.5px solid var(--text); border-bottom: 2.5px solid var(--text);
     padding: 7px 0; margin-top: 6px; font-weight: 700;
   }
-  body[data-theme="press"] .story-kicker { color: var(--muted); }
   body[data-theme="press"] .story-title {
     font-family: Georgia, "Songti SC", serif; font-size: 34px; font-weight: 900;
     text-transform: uppercase; text-align: center; letter-spacing: 0.04em; line-height: 1.3;
@@ -633,7 +621,6 @@ async function main() {
 </div>
 <div class="wrap">
   <div class="page-head">
-    <div class="mast-kicker"><span class="lang-zh">每 日 AI 行 业 观 察</span><span class="lang-en">A DAILY AI INDUSTRY BRIEF</span></div>
     <h1>AI Builders Digest</h1>
     <div class="mast-meta"><span class="lang-zh">第 ${entries.length} 期 · 每天早上 8:00 更新 · ${todayKey} 刊</span><span class="lang-en">Issue ${entries.length} · Updated daily at 8:00 AM · ${todayKey}</span></div>
   </div>
