@@ -203,9 +203,114 @@
   footer.site { margin-top: 40px; text-align: center; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; }
 
   .h3-ico { width: 13px; height: 13px; flex: none; }
+  /* ---------- theme switch ---------- */
+  .theme-switch {
+    position: fixed; bottom: 62px; right: 18px; z-index: 50;
+    display: flex; gap: 2px; padding: 3px;
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 4px; box-shadow: 0 1px 8px rgba(20, 40, 70, 0.1);
+  }
+  .theme-btn {
+    border: none; background: transparent; cursor: pointer;
+    font-size: 12px; line-height: 1.3;
+    padding: 4px 11px; border-radius: 2px; color: var(--muted);
+  }
+  .theme-btn:hover { color: var(--accent); }
+  .theme-btn.on { background: var(--accent); color: #fff; }
+
+  /* ---------- vintage newspaper theme (Monocle-style) ---------- */
+  body[data-theme="press"] {
+    --bg: #d8cfb8; --card: #f5efdf; --text: #211c12; --muted: #6e6550;
+    --border: #d6cab0; --accent: #211c12; --soft: #ece3cc; --red: #211c12;
+    --sans: Georgia, "Songti SC", "Noto Serif SC", serif;
+  }
+  body[data-theme="press"] { background: #d8cfb8; }
+  body[data-theme="press"] .wrap {
+    background: var(--card); max-width: 1120px; padding: 40px 44px 60px;
+    box-shadow: 0 3px 30px rgba(70, 58, 34, 0.28);
+  }
+  body[data-theme="press"] .page-head { border-bottom: none; padding-bottom: 4px; }
+  body[data-theme="press"] .page-head::after { display: none; }
+  body[data-theme="press"] .page-head h1 {
+    font-family: Georgia, "Songti SC", serif; font-size: 52px; font-weight: 900;
+    letter-spacing: 0.1em; text-transform: uppercase; margin: 12px 0 10px;
+  }
+  body[data-theme="press"] .mast-kicker { color: var(--text); }
+  body[data-theme="press"] .mast-meta {
+    text-transform: uppercase; letter-spacing: 0.28em; color: var(--text);
+    border-top: 2.5px solid var(--text); border-bottom: 2.5px solid var(--text);
+    padding: 7px 0; margin-top: 6px; font-weight: 700;
+  }
+  body[data-theme="press"] .story-kicker { color: var(--muted); }
+  body[data-theme="press"] .story-title {
+    font-family: Georgia, "Songti SC", serif; font-size: 34px; font-weight: 900;
+    text-transform: uppercase; text-align: center; letter-spacing: 0.04em; line-height: 1.3;
+  }
+  body[data-theme="press"] .story-deck {
+    font-family: Georgia, "Songti SC", serif; font-style: italic;
+    text-align: center; color: #3d372a;
+  }
+  body[data-theme="press"] .story-meta { text-align: center; text-transform: uppercase; }
+  body[data-theme="press"] article {
+    background: transparent; border: none; padding: 0;
+  }
+  body[data-theme="press"] article .lang {
+    column-count: 2; column-gap: 30px; column-rule: 1px solid var(--border);
+  }
+  body[data-theme="press"] .story-head, body[data-theme="press"] .kw-row,
+  body[data-theme="press"] .pullquote, body[data-theme="press"] article h3 {
+    column-span: all;
+  }
+  body[data-theme="press"] article h3 {
+    justify-content: center; font-size: 19px; letter-spacing: 0.12em;
+    color: var(--text); border-bottom: none; margin-top: 1.6em;
+    border-top: 1px solid var(--text); padding-top: 12px;
+  }
+  body[data-theme="press"] p.callout {
+    background: transparent; border-left: none; border-radius: 0; padding: 0;
+  }
+  body[data-theme="press"] p.callout::first-letter {
+    font-family: Georgia, serif; font-size: 44px; font-weight: 700;
+    float: left; line-height: 0.95; padding: 5px 8px 0 0;
+  }
+  body[data-theme="press"] .pullquote {
+    background: transparent; border-left: none;
+    border-top: 3px double var(--text); border-bottom: 3px double var(--text);
+  }
+  body[data-theme="press"] .pq-text { font-style: italic; }
+  body[data-theme="press"] .pq-mark { font-family: Georgia, serif; }
+  body[data-theme="press"] .kw { background: transparent; border-color: var(--border); color: var(--text); }
+  body[data-theme="press"] .avatar { filter: grayscale(1) contrast(1.06); }
+  body[data-theme="press"] .src-link { color: var(--text); border-bottom-color: #b9ac8d; }
+  body[data-theme="press"] .src-link:hover { color: var(--muted); }
+  body[data-theme="press"] strong.num { color: var(--text); }
+  body[data-theme="press"] article ol li::marker { color: var(--text); }
+  body[data-theme="press"] .cal-btn { background: transparent; }
+  body[data-theme="press"] .cal-cell.c1 { background: #ece4cf; }
+  body[data-theme="press"] .cal-cell.c2 { background: #e0d5b9; }
+  body[data-theme="press"] .cal-cell.c3 { background: #d2c5a2; }
+  body[data-theme="press"] .cal-cell.c4 { background: #c1b289; }
+  body[data-theme="press"] .cal-cell.c1 .dn,
+  body[data-theme="press"] .cal-cell.c2 .dn,
+  body[data-theme="press"] .cal-cell.c3 .dn,
+  body[data-theme="press"] .cal-cell.c4 .dn { color: #453c28; }
+  body[data-theme="press"] .cal-cell.today { outline-color: var(--text); }
+  body[data-theme="press"] .cal-cell.today .dn { color: var(--text); }
+  body[data-theme="press"] .cal-cell.sel { border-color: var(--text); }
+  body[data-theme="press"] .sw-btn.on, body[data-theme="press"] .theme-btn.on {
+    background: var(--text); color: var(--card);
+  }
+  body[data-theme="press"] .lang-switch, body[data-theme="press"] .theme-switch {
+    background: var(--card); border-color: var(--border);
+    box-shadow: 0 1px 8px rgba(70, 58, 34, 0.2);
+  }
 </style>
 </head>
 <body id="top" data-lang="zh">
+<div class="theme-switch" role="group" aria-label="主题 / Theme">
+  <button class="theme-btn" type="button" data-theme="classic"><span class="lang-zh">现代</span><span class="lang-en">Modern</span></button>
+  <button class="theme-btn" type="button" data-theme="press"><span class="lang-zh">报纸</span><span class="lang-en">Newspaper</span></button>
+</div>
 <div class="lang-switch" role="group" aria-label="语言 / Language">
   <button class="sw-btn" type="button" data-lang="zh">中文</button>
   <button class="sw-btn" type="button" data-lang="en">EN</button>
@@ -539,6 +644,20 @@ const LATEST_KEY = "2026-09-23";
   var saved = 'zh';
   try { saved = localStorage.getItem('fb-lang') || 'zh'; } catch (e) {}
   setLang(saved);
+})();
+
+// classic (modern news) vs press (vintage newspaper) theme
+(function () {
+  var btns = document.querySelectorAll('.theme-btn');
+  function setTheme(t) {
+    document.body.dataset.theme = t;
+    try { localStorage.setItem('fb-theme', t); } catch (e) {}
+    btns.forEach(function (b) { b.classList.toggle('on', b.dataset.theme === t); });
+  }
+  btns.forEach(function (b) { b.addEventListener('click', function () { setTheme(b.dataset.theme); }); });
+  var savedTheme = 'classic';
+  try { savedTheme = localStorage.getItem('fb-theme') || 'classic'; } catch (e) {}
+  setTheme(savedTheme);
 })();
 </script>
 </body>
