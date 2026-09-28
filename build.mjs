@@ -195,6 +195,49 @@ const AVATARS = {
   'claude blog': 'claudeai', 'anthropic engineering': 'anthropicai',
 };
 
+// ---------- product knowledge base (click a product -> info card) ----------
+const PRODUCT_KB = {
+  muse:      { name: 'Muse', desc: 'Meta 推出的个人 AI Agent 应用，可跨 App 替用户执行任务，被视为 ChatGPT 之外最有力的入口级 agent 竞争者。' },
+  chatgpt:   { name: 'ChatGPT', desc: 'OpenAI 的对话式 AI 助手，全球用户量最大的 AI 产品，正从聊天扩展到代理执行、个人金融助手等场景。' },
+  siri:      { name: 'Siri', desc: 'Apple 的语音助手，正被重构为大模型驱动的个人 agent，但迭代速度常被认为太慢。' },
+  x402:      { name: 'X402', desc: 'Coinbase 孵化、后捐给 Linux 基金会的 agent 支付协议：让 AI agent 用 stablecoin 按请求在线付费。' },
+  toshi:     { name: 'Toshi', desc: 'Coinbase 内部的 agent harness，把团队的事故记录、规范等「大脑」喂给 agent，实现代码改动的递归自我改进。' },
+  capy:      { name: 'Capy', desc: 'capydotai 推出的 agentic 编程工具，擅长多步工作流追踪与大型 PR 自动化，被 Garry Tan 称为快过 Codex/Claude Code 的秘密武器。' },
+  astra:     { name: 'Astra', desc: '一款可完成可验证端到端任务的 agent，投资人 Nikunj Kothari 评价：给它足够难的任务，它直接起飞。' },
+  codex:     { name: 'Codex', desc: 'OpenAI 的 AI 编程 agent 与云服务，可自主完成编码任务，其团队已宣告「代码冻结」时代结束。' },
+  grok:      { name: 'Grok', desc: 'xAI 的大模型，Vercel CEO 实测其逆向工程能力后评价：解得非常漂亮，而且快得惊人。' },
+  jev:       { name: 'Jev', desc: 'Vercel AI Gateway 提供的模型，可通过 HTTP 直接调用，是 Vercel AI 服务栈的一环。' },
+  openclaw:  { name: 'OpenClaw', desc: 'Peter Steinberger 参与的开源个人 agent 项目（代号 claw），Meta 的自研 agent 曾被传「使用 OpenClaw」，实为受其启发。' },
+  instinct:  { name: 'Instinct', desc: '零配置、面向普通用户的手机 agent 应用，被视作「人人都能用的 agent」的范例。' },
+  vercel:    { name: 'Vercel', desc: 'Guillermo Rauch 创办的前端云平台，AI Gateway 让各家模型通过 HTTP 直接调用。' },
+  replit:    { name: 'Replit', desc: 'Amjad Masad 领导的在线开发平台，主打人人可造软件，AI agent 深度融入产品。' },
+  box:       { name: 'Box', desc: 'Aaron Levie 领导的企业内容管理平台，agent 可对其数千万份企业文件随问随答。' },
+  blacksmith:{ name: 'Blacksmith', desc: '高性能 CI 服务商，OpenClaw 项目的赞助商。' },
+  'claude in chrome': { name: 'Claude in Chrome', desc: 'Anthropic 的浏览器扩展，让 Claude 直接在 Chrome 内替用户操作网页，已正式发布。' },
+  openai:    { name: 'OpenAI', desc: 'ChatGPT 与 Codex 的缔造者，AGI 研发的头部公司。' },
+  meta:      { name: 'Meta', desc: 'Facebook 与 Instagram 的母公司，自研个人 agent Muse。' },
+  apple:     { name: 'Apple', desc: 'Siri 的缔造者，个人 agent 入口之争的重要玩家。' },
+};
+const PRODUCT_RULES = Object.entries(PRODUCT_KB)
+  .sort((a, b) => b[1].name.length - a[1].name.length)
+  .map(([key, p]) => [key, new RegExp('(<[^>]*>)|\\b(' + p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\async function loadAvatarFiles() {') + ')\\b', 'g')]);
+
+// 每个产品在同一期内只标注首次出现，避免满屏下划线
+function wrapProducts(html, used) {
+  const masks = [];
+  let h = html.replace(/<div class="kw-row">[\s\S]*?<\/div>/g, (m) => { masks.push(m); return '\u0001' + (masks.length - 1) + '\u0001'; });
+  for (const [key, , rx] of PRODUCT_RULES) {
+    if (used.has(key)) continue;
+    h = h.replace(rx, (m, tag, word) => {
+      if (tag) return m;
+      used.add(key);
+      return '<span class="prod" data-prod="' + key + '">' + word + '</span>';
+    });
+  }
+  h = h.replace(/\u0001(\d+)\u0001/g, (m, i) => masks[Number(i)]);
+  return h;
+}
+
 async function loadAvatarFiles() {
   const files = new Map(); // handle -> filename with extension
   try {
@@ -289,7 +332,8 @@ async function main() {
     `;
     const kwRow = `<div class="kw-row">${kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('')}</div>`;
     let html = `${storyHead}${kwRow}${injectAvatars(mdToHtml(body), avatarFiles)}`;
-    html = decorateH3(html);
+    const used = new Set();
+    html = decorateH3(wrapProducts(html, used));
     // 只保留 标题 + 核心洞察：TOP 3 与正文重复，不再渲染
     html = html.replace(/<p class="callout"><strong>(?:TOP ?3|Top ?3)[^<]*<\/strong>[^<]*<\/p>\s*<ol>[\s\S]*?<\/ol>\s*/g, '');
     return `<div class="lang lang-${l}">${html}</div>`;
@@ -499,6 +543,33 @@ async function main() {
   .sw-btn:hover { color: var(--text); }
   .sw-btn.on { background: var(--accent); color: #fff; }
 
+  /* ---------- product knowledge panel ---------- */
+  .prod {
+    border-bottom: 1.5px dotted rgba(0, 113, 227, 0.55);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .prod:hover, .prod.active { background: rgba(0, 113, 227, 0.08); }
+  .prod-panel {
+    position: fixed; top: 104px; right: 16px; width: 300px; z-index: 60;
+    background: rgba(255, 255, 255, 0.88);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+  .prod-panel[hidden] { display: none; }
+  .pp-close {
+    position: absolute; top: 8px; right: 12px; border: none; background: transparent;
+    font-size: 18px; line-height: 1; color: var(--muted); cursor: pointer;
+  }
+  .pp-close:hover { color: var(--text); }
+  .pp-name { font-weight: 700; font-size: 15px; margin-bottom: 6px; padding-right: 14px; }
+  .pp-desc { font-size: 13px; line-height: 1.8; color: #48484a; }
+  @media (max-width: 800px) {
+    .prod-panel { left: 12px; right: 12px; top: auto; bottom: 90px; width: auto; }
+  }
   footer.site {
     margin-top: 44px; text-align: center; font-size: 12px; color: var(--muted);
   }
@@ -551,11 +622,17 @@ async function main() {
     </aside>
   </div>
 
+  <aside class="prod-panel" id="prodPanel" hidden>
+    <button class="pp-close" id="ppClose" type="button" aria-label="关闭">×</button>
+    <div class="pp-name" id="ppName"></div>
+    <div class="pp-desc" id="ppDesc"></div>
+  </aside>
   <footer class="site">Generated through the Follow Builders skill · <a href="https://github.com/zarazhangrui/follow-builders">zarazhangrui/follow-builders</a></footer>
 </div>
 <script>
 const DIGEST_DATES = ${datesJson};
 const TODAY_KEY = ${JSON.stringify(todayKey)};
+const PRODUCT_KB = ${JSON.stringify(PRODUCT_KB)};
 const LATEST_KEY = ${JSON.stringify(latestKey)};
 
 // month calendar grid + one-day-at-a-time view
@@ -678,6 +755,40 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
   todayBtn.addEventListener('click', function () { selectDay(TODAY_KEY); });
   window.addEventListener('hashchange', function () { route(false); });
   route(true);
+})();
+
+// product knowledge panel (click underlined product -> right info card)
+(function () {
+  var panel = document.getElementById('prodPanel');
+  if (!panel) return;
+  var nameEl = document.getElementById('ppName');
+  var descEl = document.getElementById('ppDesc');
+  function mark(key) {
+    var all = document.querySelectorAll('.prod');
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.toggle('active', all[i].getAttribute('data-prod') === key);
+    }
+  }
+  function open(key) {
+    var p = PRODUCT_KB[key];
+    if (!p) return;
+    nameEl.textContent = p.name;
+    descEl.textContent = p.desc;
+    panel.hidden = false;
+    mark(key);
+  }
+  function close() {
+    panel.hidden = true;
+    mark('');
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    while (t && t.classList && !t.classList.contains('prod') && t !== document.body) t = t.parentNode;
+    if (t && t.classList && t.classList.contains('prod')) { open(t.getAttribute('data-prod')); return; }
+    if (!panel.hidden && !(t && t.closest && t.closest('#prodPanel'))) close();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  document.getElementById('ppClose').addEventListener('click', close);
 })();
 
 (function () {
