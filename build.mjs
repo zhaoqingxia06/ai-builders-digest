@@ -274,7 +274,7 @@ async function main() {
   const avatarFiles = await loadAvatarFiles();
   const langDiv = (l, rec) => {
     if (!rec) return '';
-    const { kw, headline, deck, quote, quoteBy, body } = parseKeywords(rec.md);
+    const { kw, headline, deck, body } = parseKeywords(rec.md);
     const langZh = l === 'zh';
     const title = headline || (langZh ? `${rec.key} 简报` : `Briefing · ${rec.key}`);
     const plain = body.replace(/https?:\/\/\S+/g, '').replace(/\s/g, '');
@@ -290,16 +290,8 @@ async function main() {
     const kwRow = `<div class="kw-row">${kw.map((k) => `<span class="kw">#${escapeHtml(k)}</span>`).join('')}</div>`;
     let html = `${storyHead}${kwRow}${injectAvatars(mdToHtml(body), avatarFiles)}`;
     html = decorateH3(html);
-    if (quote) {
-      const pq = `<aside class="pullquote"><span class="pq-mark">「</span><div class="pq-text">${escapeHtml(quote)}</div>${quoteBy ? `<div class="pq-by">${escapeHtml(quoteBy)}</div>` : ''}</aside>`;
-      const start = html.indexOf('<p class="callout">');
-      if (start > -1) {
-        const end = html.indexOf('</p>', start) + 4;
-        html = html.slice(0, end) + pq + html.slice(end);
-      } else {
-        html = pq + html;
-      }
-    }
+    // 只保留 标题 + 核心洞察：TOP 3 与正文重复，不再渲染
+    html = html.replace(/<p class="callout"><strong>(?:TOP ?3|Top ?3)[^<]*<\/strong>[^<]*<\/p>\s*<ol>[\s\S]*?<\/ol>\s*/g, '');
     return `<div class="lang lang-${l}">${html}</div>`;
   };
 
@@ -478,13 +470,6 @@ async function main() {
   }
 
   /* ---------- pull quote ---------- */
-  .pullquote {
-    margin: 1.3em 0; padding: 20px 24px;
-    background: var(--soft); border-radius: 16px;
-  }
-  .pq-mark { display: block; font-size: 34px; line-height: 0.6; color: var(--accent); font-weight: 800; }
-  .pq-text { font-size: 17.5px; line-height: 1.85; margin: 12px 0 6px; font-weight: 700; color: var(--text); }
-  .pq-by { font-size: 12.5px; color: var(--muted); letter-spacing: 0.05em; }
 
   /* ---------- language toggle: frosted pill ---------- */
   body[data-lang="zh"] .lang-en { display: none; }
