@@ -2,7 +2,7 @@
 // remix.mjs — turn feed.json into a daily digest section and merge it into
 // the monthly digest files. Runs locally or inside GitHub Actions.
 //
-// - If ZHIPU_API_KEY is set, calls GLM (glm-4.5-flash) to write the polished
+// - If DEEPSEEK_API_KEY is set, calls DeepSeek (deepseek-chat) to write the polished
 //   zh + en digests in the house format.
 // - Otherwise writes a simple deterministic zh briefing, so the archive never
 //   misses a day; the local machine upgrades it to the full version later.
@@ -59,7 +59,7 @@ async function hasToday() {
   return new RegExp(`^## ${date}\\s*$`, 'm').test(text);
 }
 
-// ---------- GLM API ----------
+// ---------- LLM call ----------
 
 const ZH_RULES = `你是「AI Builders Digest」的编辑，把给定的 AI builder 动态 JSON 改写成当天摘要的小节正文。硬性规则：
 1. 只使用 JSON 里的内容，绝不编造；每条动态末尾独占一行放 JSON 给出的原文 URL，没有 URL 的内容不要收录。
@@ -89,15 +89,26 @@ const EN_RULES = `You are the editor of "AI Builders Digest". Rewrite the given 
 6. Skip small talk, pure promotion, engagement bait; builders without substance do not appear.
 7. Do NOT output a "## date" style heading (like ## 2026-09-23); start directly from the keywords line. No explanations, preamble, or code fences.`;
 
-async function glm(system, user) {
-  const key = process.env.ZHIPU_API_KEY;
-  if (!key) return null;
+// ---------- LLM providers (DeepSeek preferred, Zhipu as backup) ----------
+
+
+function llmProvider() {
+  if (process.env.DEEPSEEK_API_KEY) {
+    return { name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', key: process.env.DEEPSEEK_API_KEY };
+  }
+  if (process.env.ZHIPU_API_KEY) {
+    return { name: 'Zhipu', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4.5-flash', key: process.env.ZHIPU_API_KEY };
+  }
+  return null;
+}
+
+async function callOpenAICompatible(name, baseUrl, model, key, system, user) {
   try {
-    const res = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+    const res = await fetch(baseUrl + '/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
       body: JSON.stringify({
-        model: 'glm-4.5-flash',
+        model,
         temperature: 0.4,
         messages: [
           { role: 'system', content: system },
@@ -106,17 +117,23 @@ async function glm(system, user) {
       }),
     });
     if (!res.ok) {
-      log('GLM HTTP', res.status, '— falling back');
+      log(name, 'HTTP', res.status, '- falling back');
       return null;
     }
     const data = await res.json();
-    let text = data.choices?.[0]?.message?.content || '';
+    let text = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content || '' : '';
     text = text.replace(/^```(?:markdown)?\n?/, '').replace(/\n?```\s*$/, '').trim();
     return text || null;
   } catch (e) {
-    log('GLM call failed:', e.message, '— falling back');
+    log(name, 'call failed:', e.message, '- falling back');
     return null;
   }
+}
+
+async function llm(system, user) {
+  const provider = llmProvider();
+  if (!provider) return null;
+  return callOpenAICompatible(provider.name, provider.baseUrl, provider.model, provider.key, system, user);
 }
 
 // ---------- deterministic fallback (no API key) ----------
@@ -201,11 +218,12 @@ const feedText = JSON.stringify(compact);
 
 let zhBody = null;
 let enBody = null;
-if (process.env.ZHIPU_API_KEY) {
-  zhBody = await glm(ZH_RULES, `Today is ${date}. Feed JSON:\n${feedText}`);
-  if (zhBody) enBody = await glm(EN_RULES, `Today is ${date}. Feed JSON:\n${feedText}`);
+const provider = llmProvider();
+if (provider) {
+  zhBody = await llm(ZH_RULES, `Today is ${date}. Feed JSON:\n${feedText}`);
+  if (zhBody) enBody = await llm(EN_RULES, `Today is ${date}. Feed JSON:\n${feedText}`);
 } else {
-  log('ZHIPU_API_KEY not set — using fallback briefing');
+  log('no LLM API key set — using fallback briefing');
 }
 
 if (zhBody) {
