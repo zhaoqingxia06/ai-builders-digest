@@ -220,13 +220,13 @@ const PRODUCT_KB = {
 };
 const PRODUCT_RULES = Object.entries(PRODUCT_KB)
   .sort((a, b) => b[1].name.length - a[1].name.length)
-  .map(([key, p]) => [key, new RegExp('(<[^>]*>)|\\b(' + p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\async function loadAvatarFiles() {') + ')\\b', 'g')]);
+  .map(([key, p]) => [key, new RegExp('(<[^>]*>)|\\b(' + p.name.replace(/[.*+?^${}()|[\]\\]/g, '\$&') + ')\\b', 'g')]);
 
 // 每个产品在同一期内只标注首次出现，避免满屏下划线
 function wrapProducts(html, used) {
   const masks = [];
   let h = html.replace(/<div class="kw-row">[\s\S]*?<\/div>/g, (m) => { masks.push(m); return '\u0001' + (masks.length - 1) + '\u0001'; });
-  for (const [key, , rx] of PRODUCT_RULES) {
+  for (const [key, rx] of PRODUCT_RULES) {
     if (used.has(key)) continue;
     h = h.replace(rx, (m, tag, word) => {
       if (tag) return m;
