@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // ============================================================================
-// Follow Builders — Prepare Digest
+// AI Builders Digest — Prepare Digest（自有管线，无 skill 依赖）
 // ============================================================================
 // Gathers everything the LLM needs to produce a digest:
 // - Fetches the central feeds (tweets + podcasts)
@@ -21,16 +21,24 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
+const scriptDir = decodeURIComponent(new URL('.', import.meta.url).pathname);
+
 // -- Constants ---------------------------------------------------------------
 
 const USER_DIR = join(homedir(), '.follow-builders');
 const CONFIG_PATH = join(USER_DIR, 'config.json');
 
-const FEED_X_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json';
-const FEED_PODCASTS_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-podcasts.json';
-const FEED_BLOGS_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-blogs.json';
+// 内容源端点：可在 site/config/feeds.json 中自主更换
+let FEED_X_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json';
+let FEED_PODCASTS_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-podcasts.json';
+let FEED_BLOGS_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-blogs.json';
+try {
+  const feedsCfg = JSON.parse(readFileSync(join(scriptDir, '..', 'config', 'feeds.json'), 'utf-8'));
+  FEED_X_URL = feedsCfg.x || FEED_X_URL;
+  FEED_PODCASTS_URL = feedsCfg.podcasts || FEED_PODCASTS_URL;
+  FEED_BLOGS_URL = feedsCfg.blogs || FEED_BLOGS_URL;
+} catch {}
 
-const PROMPTS_BASE = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/prompts';
 const PROMPT_FILES = [
   'summarize-podcast.md',
   'summarize-tweets.md',
@@ -40,8 +48,6 @@ const PROMPT_FILES = [
 ];
 
 // -- Fetch helpers -----------------------------------------------------------
-
-const scriptDir = decodeURIComponent(new URL('.', import.meta.url).pathname);
 
 async function fetchWithRetry(url, tries = 3) {
   let lastErr;
@@ -128,12 +134,7 @@ async function main() {
     );
   }
 
-  // 3. Load prompts with priority: user custom > remote (GitHub) > local default
-  //
-  // If the user has a custom prompt at ~/.follow-builders/prompts/<file>,
-  // use that (they personalized it — don't overwrite with remote updates).
-  // Otherwise, fetch the latest from GitHub so they get central improvements.
-  // If GitHub is unreachable, fall back to the local copy shipped with the skill.
+  // 3. Load prompts: user custom > our own local copies (site/prompts/)
   const prompts = {};
   const localPromptsDir = join(scriptDir, '..', 'prompts');
   const userPromptsDir = join(USER_DIR, 'prompts');
@@ -149,14 +150,7 @@ async function main() {
       continue;
     }
 
-    // Priority 2: latest from GitHub (central updates)
-    const remote = await fetchText(`${PROMPTS_BASE}/${filename}`);
-    if (remote) {
-      prompts[key] = remote;
-      continue;
-    }
-
-    // Priority 3: local copy shipped with the skill
+    // Priority 2: our own local copy (site/prompts/) — no external dependency
     if (existsSync(localPath)) {
       prompts[key] = await readFile(localPath, 'utf-8');
     } else {
