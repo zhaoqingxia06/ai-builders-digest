@@ -206,7 +206,6 @@ const PRODUCT_KB = {
   astra:     { name: 'Astra', desc: '一款可完成可验证端到端任务的 agent，投资人 Nikunj Kothari 评价：给它足够难的任务，它直接起飞。' },
   codex:     { name: 'Codex', desc: 'OpenAI 的 AI 编程 agent 与云服务，可自主完成编码任务，其团队已宣告「代码冻结」时代结束。' },
   grok:      { name: 'Grok', desc: 'xAI 的大模型，Vercel CEO 实测其逆向工程能力后评价：解得非常漂亮，而且快得惊人。' },
-  jev:       { name: 'Jev', desc: 'Vercel AI Gateway 提供的模型，可通过 HTTP 直接调用，是 Vercel AI 服务栈的一环。' },
   openclaw:  { name: 'OpenClaw', desc: 'Peter Steinberger 参与的开源个人 agent 项目（代号 claw），Meta 的自研 agent 曾被传「使用 OpenClaw」，实为受其启发。' },
   instinct:  { name: 'Instinct', desc: '零配置、面向普通用户的手机 agent 应用，被视作「人人都能用的 agent」的范例。' },
   vercel:    { name: 'Vercel', desc: 'Guillermo Rauch 创办的前端云平台，AI Gateway 让各家模型通过 HTTP 直接调用。' },
