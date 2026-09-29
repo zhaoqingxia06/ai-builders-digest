@@ -22,7 +22,7 @@ const DIGEST_DIR = join(root, 'digests');
 
 const log = (...a) => console.log('[remix]', ...a);
 
-// ---------- feed 端点（可在 site/config/feeds.json 自主更换） ----------
+// ---------- 内容源端点（可在 site/config/feeds.json 自主更换） ----------
 
 let FEEDS = {
   x: 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json',
@@ -44,6 +44,12 @@ function llmProvider() {
     return { name: 'Zhipu', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4.5-flash', key: process.env.ZHIPU_API_KEY };
   }
   return null;
+}
+
+async function llm(system, user) {
+  const provider = llmProvider();
+  if (!provider) return null;
+  return callOpenAICompatible(provider.name, provider.baseUrl, provider.model, provider.key, system, user);
 }
 
 async function callOpenAICompatible(name, baseUrl, model, key, system, user) {
@@ -86,7 +92,7 @@ const ZH_RULES = `你是「AI Builders Digest」的编辑，把给定的 AI buil
    deck: 副题（40-60 字，一句话点出当天两三条主线，设置悬念）
    quote: 当天最带劲/最有观点的一句原话（中文翻译），没有合适的就留空
    quoteBy: 说这句话的人 · 其职位（来自 bio 字段），quote 为空则此行留空
-5. 之后依次为小节："## 🧭 今日洞察"（内含 **核心洞察**：2-3 句总结今天大家在讨论什么、有什么趋势在形成；**TOP 3 热点话题**：有序列表 1. 2. 3.，每项 **加粗话题名** — 一句概括并点出来源）、"## 𝕏 / TWITTER"（每位有实质动态的 builder 一段，2-4 句概括，正文用 **加粗** 标注关键产品/协议/概念，数字如 76%、30¢ 原样保留）、有博客时 "## 📰 OFFICIAL BLOGS"、有播客时 "## 🎙 PODCASTS"（200-400 字，含一句最 memorable 的直接引语，开头给一句话要点）。
+5. 之后依次为小节："## 🧭 今日洞察"（内含 **核心洞察**：2-3 句总结今天大家在讨论什么、有什么趋势在形成）、"## 𝕏 / TWITTER"（每位有实质动态的 builder 一段，2-4 句概括，正文用 **加粗** 标注关键产品/协议/概念，数字如 76%、30¢ 原样保留）、有博客时 "## 📰 OFFICIAL BLOGS"、有播客时 "## 🎙 PODCASTS"（200-400 字，含一句最 memorable 的直接引语，开头给一句话要点）。
 6. 闲聊、纯宣传、拉票推文跳过；没提的 builder 不要出现。
 7. 不要输出 "## 日期" 格式的标题（如 ## 2026-09-23），直接从 keywords 行开始；不要输出任何解释、前言或代码围栏。`;
 
@@ -197,16 +203,16 @@ const compact = {
   date: FEED_STAMP.slice(0, 10),
   x: (feed.x || []).map((b) => ({
     name: b.name,
-    bio: b.bio || "",
+    bio: b.bio || '',
     tweets: (b.tweets || []).map((t) => ({ text: t.text, url: t.url })),
   })),
   podcasts: (feed.podcasts || []).map((p) => ({
     name: p.name, title: p.title, url: p.url,
-    transcript: (p.transcript || "").slice(0, 30000),
+    transcript: (p.transcript || '').slice(0, 30000),
   })),
   blogs: (feed.blogs || []).map((b) => ({
-    name: b.name, title: b.title, url: b.url, author: b.author || "",
-    description: b.description || "", content: (b.content || "").slice(0, 2500),
+    name: b.name, title: b.title, url: b.url, author: b.author || '',
+    description: b.description || '', content: (b.content || '').slice(0, 2500),
   })),
 };
 const feedText = JSON.stringify(compact);
@@ -214,23 +220,17 @@ const feedText = JSON.stringify(compact);
 const now = new Date();
 const TODAY = now.toISOString().slice(0, 10);
 const month = TODAY.slice(0, 7);
-const YD = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
-const YESTERDAY = YD.toISOString().slice(0, 10);
 
-function parseKeywordsLocal(md) {
-  const m = md.match(/^keywords:\s*(.+)\s*$/m);
-  if (!m) return [];
-  return m[1].split("|").map((s) => s.trim()).filter(Boolean).slice(0, 3);
-}
-
-function mergeIntoDateLocal(text, dateKey, section) {
-  const header = "## " + dateKey;
-  const lines = text.split("\n");
+async function writeDay(lang, dateKey, body) {
+  const file = join(DIGEST_DIR, `${month}.${lang}.md`);
+  let text = existsSync(file) ? await readFile(file, 'utf-8') : `# AI Builders Digest — ${month}`;
+  const section = `${body.trim()}\n\nfeed: ${FEED_STAMP}\n`;
+  const lines = text.split('\n');
   const out = [];
   let inSection = false;
   let replaced = false;
   for (const line of lines) {
-    if (line.trim() === header) {
+    if (line.trim() === `## ${dateKey}`) {
       inSection = true;
       replaced = true;
       out.push(section.trimEnd());
@@ -239,18 +239,33 @@ function mergeIntoDateLocal(text, dateKey, section) {
     if (inSection && dayHeaderRe.test(line)) inSection = false;
     if (!inSection) out.push(line);
   }
-  if (replaced) return out.join("\n");
-  const base = text.trimEnd();
-  return base ? base + "\n\n" + section : section;
-}
-
-async function writeDay(lang, dateKey, body) {
-  const file = join(DIGEST_DIR, month + "." + lang + ".md");
-  let text = existsSync(file) ? await readFile(file, "utf-8") : "# AI Builders Digest - " + month;
-  const section = mergeIntoDateLocal(text, dateKey, body);
+  if (!replaced) out.push(`${section.trimEnd()}\n`);
   await mkdir(DIGEST_DIR, { recursive: true });
-  const reRead = await readFile(file, "utf-8");
-  await writeFile(file, mergeIntoDateLocal(reRead, dateKey, body), "utf-8");
+  await writeFile(file, out.join('\n'), 'utf-8');
 }
 
-log("multi-day edition pass complete for", TODAY);
+// 生成指定日期的小节：DeepSeek 优先；无 Key 时中文降级简报
+async function generateEdition(dateKey) {
+  const user = `Today is ${dateKey}. Feed JSON:\n${feedText}`;
+  const zh = await llm(ZH_RULES, user) || fallbackBody(stats, compact);
+  const en = await llm(EN_RULES, user);
+  await writeDay('zh', dateKey, zh);
+  if (en) await writeDay('en', dateKey, en);
+  log('edition written:', dateKey, '(', zh === fallbackBody ? '' : 'LLM', ')');
+}
+
+// 补齐从存档最早一天（最多回溯 14 天）到今天之间所有缺失的日期
+const zhFile = join(DIGEST_DIR, `${month}.zh.md`);
+const zhText = existsSync(zhFile) ? await readFile(zhFile, 'utf-8') : `# AI Builders Digest — ${month}`;
+const existing = new Set();
+const dayRe = /^## (\d{4}-\d{2}-\d{2})\s*$/gm;
+let dm;
+while ((dm = dayRe.exec(zhText)) !== null) existing.add(dm[1]);
+
+const startT = now.getTime() - 13 * 86400000;
+for (let t = startT; t <= now.getTime(); t += 86400000) {
+  const d = new Date(t).toISOString().slice(0, 10);
+  if (!existing.has(d)) await generateEdition(d);
+}
+
+log('generation pass complete');
