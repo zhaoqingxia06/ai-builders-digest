@@ -357,13 +357,13 @@ async function main() {
 <title>AI Builders Digest</title>
 <style>
   :root {
-    --bg: #f5f5f7;        /* Apple page gray */
+    --bg: #f5f5f7;
     --card: #ffffff;
-    --text: #1d1d1f;      /* near-black */
+    --text: #1d1d1f;
     --muted: #6e6e73;
     --border: rgba(0, 0, 0, 0.08);
-    --accent: #0071e3;    /* Apple blue */
-    --soft: #f5f9ff;
+    --accent: #0071e3;
+    --soft: rgba(0, 113, 227, 0.06);
     --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
   }
   * { box-sizing: border-box; }
@@ -378,32 +378,35 @@ async function main() {
 
   /* ---------- masthead ---------- */
   .page-head {
-    text-align: center; padding: 22px 0 24px;
+    text-align: center; padding: 20px 0 26px;
     border-bottom: 1px solid var(--border);
   }
   .page-head h1 {
-    margin: 0 0 10px; font-size: 40px; font-weight: 800;
-    letter-spacing: -0.022em; line-height: 1.2; color: var(--text);
+    margin: 0 0 10px; font-size: 44px; font-weight: 800;
+    letter-spacing: -0.025em; line-height: 1.15; color: var(--text);
   }
-  .mast-meta { font-size: 13px; color: var(--muted); letter-spacing: 0.01em; }
+  .mast-meta { font-size: 13px; color: var(--muted); letter-spacing: 0.02em; }
 
-  /* ---------- two-column layout ---------- */
+  /* ---------- layout ---------- */
   .layout {
     display: grid; grid-template-columns: minmax(0, 1fr) 264px;
-    gap: 32px; align-items: start; margin-top: 28px;
+    gap: 32px; align-items: start; margin-top: 30px;
   }
   .main { min-width: 0; }
-  .side { position: sticky; top: 24px; }
+  .side { position: sticky; top: 100px; }
   @media (max-width: 800px) {
     .layout { grid-template-columns: 1fr; }
     .side { position: static; }
   }
 
-  /* ---------- calendar card ---------- */
+  /* ---------- calendar: frosted card ---------- */
   .side .card {
-    background: #ffffff; border: 1px solid var(--border);
-    border-radius: 18px; padding: 18px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.05); border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
   }
   .cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   .cal-title { font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -443,17 +446,25 @@ async function main() {
   .story-deck { font-size: 16px; color: var(--muted); line-height: 1.85; }
   .story-meta { font-size: 12px; color: var(--muted); margin-top: 12px; letter-spacing: 0.03em; }
 
-  /* ---------- topic chips: Apple pills ---------- */
+  /* ---------- topic chips: gradient pills ---------- */
   .kw-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 10px 0 4px; }
   .kw {
     display: inline-block; font-size: 13px; line-height: 1.7;
-    padding: 5px 16px; border-radius: 980px;
-    background: #0071e3; color: #fff;
-    font-weight: 600; letter-spacing: 0.01em;
-    box-shadow: 0 2px 10px rgba(0, 113, 227, 0.22);
+    padding: 6px 18px; border-radius: 980px;
+    background: linear-gradient(135deg, #0a84ff, #5e5ce6);
+    color: #fff; font-weight: 600; letter-spacing: 0.01em;
+    box-shadow: 0 2px 12px rgba(10, 132, 255, 0.3);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  .kw:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0, 113, 227, 0.32); }
+  .kw:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(10, 132, 255, 0.4); }
+  .kw-row .kw:nth-of-type(2) {
+    background: linear-gradient(135deg, #bf5af2, #ff375f);
+    box-shadow: 0 2px 12px rgba(191, 90, 242, 0.3);
+  }
+  .kw-row .kw:nth-of-type(3) {
+    background: linear-gradient(135deg, #30d158, #6ac4dc);
+    box-shadow: 0 2px 12px rgba(48, 209, 88, 0.3);
+  }
 
   /* ---------- article card ---------- */
   article.day { display: none; }
@@ -477,7 +488,6 @@ async function main() {
   }
   article h3.ins-h { color: var(--text); }
   article h3 .h3-ico { color: var(--accent); }
-  .h3-ico { width: 14px; height: 14px; flex: none; }
   article h4 { font-size: 17px; font-weight: 700; margin: 1.5em 0 0.4em; line-height: 1.6; color: var(--text); }
   article p { margin: 0.8em 0; text-align: justify; }
   article p.callout {
@@ -513,7 +523,32 @@ async function main() {
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
   }
 
-  /* ---------- pull quote ---------- */
+  /* ---------- product knowledge panel ---------- */
+  .prod {
+    border-bottom: 1.5px dotted rgba(0, 113, 227, 0.55);
+    cursor: pointer; transition: background 0.15s ease;
+  }
+  .prod:hover, .prod.active { background: rgba(0, 113, 227, 0.08); }
+  .prod-panel {
+    position: fixed; z-index: 70; width: 330px;
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.16);
+  }
+  .prod-panel[hidden] { display: none; }
+  .pp-close {
+    position: absolute; top: 8px; right: 12px; border: none; background: transparent;
+    font-size: 18px; line-height: 1; color: var(--muted); cursor: pointer;
+  }
+  .pp-close:hover { color: var(--text); }
+  .pp-name { font-weight: 700; font-size: 15px; margin-bottom: 6px; padding-right: 14px; }
+  .pp-desc { font-size: 13px; line-height: 1.8; color: #48484a; }
+  @media (max-width: 800px) {
+    .prod-panel { left: 12px; right: 12px; top: auto; bottom: 90px; width: auto; }
+  }
 
   /* ---------- language toggle: frosted pill ---------- */
   body[data-lang="zh"] .lang-en { display: none; }
@@ -543,36 +578,7 @@ async function main() {
   .sw-btn:hover { color: var(--text); }
   .sw-btn.on { background: var(--accent); color: #fff; }
 
-  /* ---------- product knowledge panel ---------- */
-  .prod {
-    border-bottom: 1.5px dotted rgba(0, 113, 227, 0.55);
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
-  .prod:hover, .prod.active { background: rgba(0, 113, 227, 0.08); }
-  .prod-panel {
-    position: fixed; z-index: 70; width: 330px;
-    background: rgba(255, 255, 255, 0.92);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    backdrop-filter: saturate(180%) blur(20px);
-    border: 1px solid var(--border); border-radius: 14px;
-    padding: 14px 16px;
-    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.16);
-  }
-  .prod-panel[hidden] { display: none; }
-  .pp-close {
-    position: absolute; top: 8px; right: 12px; border: none; background: transparent;
-    font-size: 18px; line-height: 1; color: var(--muted); cursor: pointer;
-  }
-  .pp-close:hover { color: var(--text); }
-  .pp-name { font-weight: 700; font-size: 15px; margin-bottom: 6px; padding-right: 14px; }
-  .pp-desc { font-size: 13px; line-height: 1.8; color: #48484a; }
-  @media (max-width: 800px) {
-    .prod-panel { left: 12px; right: 12px; top: auto; bottom: 90px; width: auto; }
-  }
-  footer.site {
-    margin-top: 44px; text-align: center; font-size: 12px; color: var(--muted);
-  }
+  footer.site { margin-top: 44px; text-align: center; font-size: 12px; color: var(--muted); }
 
 </style>
 </head>
