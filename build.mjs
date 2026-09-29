@@ -551,13 +551,13 @@ async function main() {
   }
   .prod:hover, .prod.active { background: rgba(0, 113, 227, 0.08); }
   .prod-panel {
-    position: fixed; top: 104px; right: 16px; width: 300px; z-index: 60;
-    background: rgba(255, 255, 255, 0.88);
+    position: fixed; z-index: 70; width: 330px;
+    background: rgba(255, 255, 255, 0.92);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     backdrop-filter: saturate(180%) blur(20px);
-    border: 1px solid var(--border); border-radius: 16px;
-    padding: 16px 18px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.16);
   }
   .prod-panel[hidden] { display: none; }
   .pp-close {
@@ -769,12 +769,24 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
       all[i].classList.toggle('active', all[i].getAttribute('data-prod') === key);
     }
   }
-  function open(key) {
+  function place(anchor) {
+    var r = anchor.getBoundingClientRect();
+    var w = panel.offsetWidth || 330;
+    panel.style.maxWidth = Math.min(330, window.innerWidth - 24) + 'px';
+    var left = Math.min(Math.max(12, r.left), Math.max(12, window.innerWidth - w - 12));
+    var top = r.bottom + 10;
+    var h = panel.offsetHeight;
+    if (top + h > window.innerHeight - 12) top = Math.max(12, r.top - h - 10);
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+  }
+  function open(key, anchor) {
     var p = PRODUCT_KB[key];
     if (!p) return;
     nameEl.textContent = p.name;
     descEl.textContent = p.desc;
     panel.hidden = false;
+    if (anchor) place(anchor); else { panel.style.left = '16px'; panel.style.top = '104px'; }
     mark(key);
   }
   function close() {
@@ -784,7 +796,7 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
   document.addEventListener('click', function (e) {
     var t = e.target;
     while (t && t.classList && !t.classList.contains('prod') && t !== document.body) t = t.parentNode;
-    if (t && t.classList && t.classList.contains('prod')) { open(t.getAttribute('data-prod')); return; }
+    if (t && t.classList && t.classList.contains('prod')) { open(t.getAttribute('data-prod'), t); return; }
     if (!panel.hidden && !(t && t.closest && t.closest('#prodPanel'))) close();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
