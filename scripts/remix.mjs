@@ -224,7 +224,7 @@ const month = TODAY.slice(0, 7);
 async function writeDay(lang, dateKey, body) {
   const file = join(DIGEST_DIR, `${month}.${lang}.md`);
   let text = existsSync(file) ? await readFile(file, 'utf-8') : `# AI Builders Digest — ${month}`;
-  const section = `${body.trim()}\n\nfeed: ${FEED_STAMP}\n`;
+  const section = `## ${dateKey}\n\n${body.trim()}\n\nfeed: ${FEED_STAMP}\n`;
   const lines = text.split('\n');
   const out = [];
   let inSection = false;
