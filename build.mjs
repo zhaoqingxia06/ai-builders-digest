@@ -3,7 +3,7 @@
 // emits ~/.follow-builders/site/index.html — calendar heatmap on top, all
 // digests below, heatmap cells link to each day's article. No dependencies.
 
-import { readdir, readFile, writeFile } from 'fs/promises';
+import { readdir, readFile, writeFile, rename } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -821,7 +821,9 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
 </html>
 `;
 
-  await writeFile(OUT, html, 'utf-8');
+  // 原子写入：先写临时文件再改名，避免构建期间被请求读到半截文件
+  await writeFile(OUT + '.tmp', html, 'utf-8');
+  await rename(OUT + '.tmp', OUT);
   console.log(`OK ${OUT} — ${entries.length} digest(s), latest: ${entries[0]?.key || 'none'}`);
 }
 
