@@ -2,8 +2,10 @@ name: daily-digest
 
 on:
   schedule:
-    - cron: '0 22 * * *' # 06:00 Beijing morning edition (22:00 UTC)
-    - cron: '30 7 * * *' # 15:30 Beijing evening refresh, right after the central feed's daily update (~15:00 Beijing)
+    - cron: '0 22 * * *'   # 06:00 Beijing - morning retrieval
+    - cron: '0 0 * * *'    # 08:00 Beijing - completeness check/backfill
+    - cron: '30 7 * * *'   # 15:30 Beijing - refresh after the central feed's daily update (~14:45 Beijing)
+    - cron: '0 12 * * *'   # 20:00 Beijing - evening update with the day's accumulated content
   workflow_dispatch: {}
 
 permissions:
