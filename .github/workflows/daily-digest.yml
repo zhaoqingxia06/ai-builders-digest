@@ -2,7 +2,7 @@ name: daily-digest
 
 on:
   schedule:
-    - cron: '30 19 * * *' # ~08:00 Beijing morning edition (03:30 Beijing + GitHub scheduler drift)
+    - cron: '0 22 * * *' # 06:00 Beijing morning edition (22:00 UTC)
     - cron: '30 7 * * *' # 15:30 Beijing evening refresh, right after the central feed's daily update (~15:00 Beijing)
   workflow_dispatch: {}
 
