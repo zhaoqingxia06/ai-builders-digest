@@ -11,7 +11,7 @@
 // 4. 中英双语写入月度文件（digests/YYYY-MM.zh.md / .en.md）
 // ============================================================================
 
-import { readFile, writeFile, mkdir } from 'fs/promises';
+import { readFile, writeFile, mkdir, readdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -298,15 +298,25 @@ async function generateEdition(dateKey, { refresh = false } = {}) {
   log('edition written:', dateKey, llmOk ? '(LLM)' : '(fallback)');
 }
 
-// 补齐从存档最早一天到今天之间所有缺失的日期
+// 补齐从存档最早一天到今天之间所有缺失的日期。
+// existingDays 必须跨月统计：backfill 窗口常跨月边界，若只看当月文件，
+// 上月末几天会被误判为缺失，每次运行都用降级简报覆盖上月存档。
 const zhAllPath = join(DIGEST_DIR, month + '.zh.md');
 const existingDays = new Set();
 let zhAllText = null;
-if (existsSync(zhAllPath)) {
-  zhAllText = await readFile(zhAllPath, 'utf-8');
-  let mAll;
-  const allRe = /^## (\d{4}-\d{2}-\d{2})\s*$/gm;
-  while ((mAll = allRe.exec(zhAllText)) !== null) existingDays.add(mAll[1]);
+{
+  let files = [];
+  try {
+    files = await readdir(DIGEST_DIR);
+  } catch {}
+  for (const f of files) {
+    if (!f.endsWith('.zh.md')) continue;
+    const text = await readFile(join(DIGEST_DIR, f), 'utf-8');
+    if (f === `${month}.zh.md`) zhAllText = text;
+    let mAll;
+    const allRe = /^## (\d{4}-\d{2}-\d{2})\s*$/gm;
+    while ((mAll = allRe.exec(text)) !== null) existingDays.add(mAll[1]);
+  }
 }
 const missing = [];
 {
@@ -318,7 +328,7 @@ const missing = [];
 }
 
 // 今天已有期号但来自更早的 feed 快照时，用最新快照刷新（仅 LLM 成功才覆盖）
-if (!missing.includes(TODAY) && existsSync(zhAllPath)) {
+if (!missing.includes(TODAY) && zhAllText) {
   const cur = dayStamp(zhAllText, TODAY);
   if (cur && cur !== FEED_STAMP) missing.push(TODAY);
 }
