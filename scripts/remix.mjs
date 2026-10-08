@@ -279,6 +279,86 @@ function dayStamp(text, dateKey) {
   return stamps.length ? stamps[stamps.length - 1] : null;
 }
 
+// ---------- 生成后 URL 修复 ----------
+// LLM 偶尔漏掉条目末尾的原文 URL 行（2026-10 上旬连续多天如此，站点期号
+// 因此没有"原文"按钮）。这里在写入前做确定性修复：给缺链接的 𝕏 段落补上
+// 该 builder 在本快照里的推文 URL，播客/博客块缺链接时补条目 URL。只增不删。
+
+function builderTweets(name, exclude) {
+  const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const n = norm(name);
+  if (!n) return [];
+  let cands = compact.x.filter((b) => norm(b.name) === n);
+  if (!cands.length) cands = compact.x.filter((b) => norm(b.name).includes(n) || n.includes(norm(b.name)));
+  const urls = [];
+  for (const b of cands) for (const t of b.tweets) if (t.url && !exclude.has(t.url)) urls.push(t.url);
+  return urls;
+}
+
+function repairUrls(body, source) {
+  let added = 0;
+  const sections = body.split(/\n(?=## )/);
+  const out = sections.map((sec) => {
+    if (/^## .*(TWITTER|PODCASTS|BLOGS)/i.test(sec) === false) return sec;
+    if (/PODCASTS|BLOGS/i.test(sec)) {
+      if (/https?:\/\//.test(sec)) return sec;
+      const m = sec.match(/^\*\*([^*]+)\*\*/m) || sec.match(/([A-Za-z][A-Za-z0-9 .&']{2,40})/);
+      if (!m) return sec;
+      const norm = (s) => (s || '').toLowerCase();
+      const pool = /PODCASTS/i.test(sec) ? compact.podcasts : compact.blogs;
+      let best = null, bestScore = 0;
+      for (const it of pool) {
+        let score = 0;
+        for (const t of new Set(`${it.name}`.toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length >= 3))) if (norm(sec).includes(t)) score += 2;
+        for (const t of new Set(`${it.title}`.toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length >= 4))) if (norm(sec).includes(t)) score += 1;
+        if (score > bestScore) { bestScore = score; best = it; }
+      }
+      if (best && bestScore >= 3) {
+        added += 1;
+        return sec.trimEnd() + '\n' + best.url + '\n';
+      }
+      log(`[repair] ${source}: ${sec.match(/^## [^\n]*/)[0]} 有块缺链接且无法匹配，保留原样`);
+      return sec;
+    }
+    // 𝕏 小节：段落 = 连续非空行
+    const lines = sec.split('\n');
+    const res = [];
+    let para = [];
+    const seen = new Set();
+    for (const line of lines) {
+      if (line.trim() === '') {
+        if (para.length) {
+          const text = para.join('\n');
+          if (!/https?:\/\//.test(text)) {
+            const nameM = text.match(/^\*\*([^*]+)\*\*/) || text.match(/^([A-Za-z][A-Za-z0-9 .&']{2,40}?)[,，:：]/);
+            if (nameM) {
+              const urls = builderTweets(nameM[1], seen);
+              if (urls.length) {
+                para.push(...urls);
+                urls.forEach((u) => seen.add(u));
+                added += urls.length;
+                log(`[repair] ${source}: "${nameM[1]}" +${urls.length} 条链接`);
+              } else {
+                log(`[repair] ${source}: "${nameM[1]}" 段落缺链接但快照中无其推文`);
+              }
+            } else {
+              log(`[repair] ${source}: 段落缺链接且无 builder 名`);
+            }
+          }
+          res.push(...para);
+          para = [];
+        }
+        res.push(line);
+      } else {
+        para.push(line);
+      }
+    }
+    if (para.length) res.push(...para);
+    return res.join('\n');
+  });
+  return { body: out.join('\n'), added };
+}
+
 // 为目标日生成小节：DeepSeek 优先、Zhipu 备用；都失败时——
 // 新日期写入降级简报，刷新已有日期则跳过（保留旧版，不用简报覆盖好内容）
 async function generateEdition(dateKey, { refresh = false } = {}) {
@@ -291,8 +371,11 @@ async function generateEdition(dateKey, { refresh = false } = {}) {
       return;
     }
     zh = fallbackBody(stats, compact);
+  } else {
+    zh = repairUrls(zh, `zh ${dateKey}`).body;
   }
-  const en = llmOk ? await llm(EN_RULES, user) : null;
+  let en = llmOk ? await llm(EN_RULES, user) : null;
+  if (en) en = repairUrls(en, `en ${dateKey}`).body;
   await writeDay('zh', dateKey, zh);
   if (en) await writeDay('en', dateKey, en);
   log('edition written:', dateKey, llmOk ? '(LLM)' : '(fallback)');
