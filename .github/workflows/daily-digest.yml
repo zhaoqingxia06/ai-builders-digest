@@ -37,6 +37,11 @@ jobs:
       - name: build site
         run: node build.mjs
 
+      - name: verify latest edition
+        # 红灯 = 站点没有今天/昨天的期号（如 DeepSeek 欠费、上游 feed 为空），
+        # 失败邮件会发到仓库所有者，避免"网站停在旧一期"无人察觉
+        run: node scripts/verify-fresh.mjs
+
       - name: commit & push
         run: |
           git config user.name "digest-bot"
