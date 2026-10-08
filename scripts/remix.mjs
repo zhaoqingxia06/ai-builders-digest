@@ -36,14 +36,15 @@ try {
 
 // ---------- LLM providers（DeepSeek 优先，智谱备用） ----------
 
-function llmProvider() {
+function llmProviders() {
+  const providers = [];
   if (process.env.DEEPSEEK_API_KEY) {
-    return { name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', key: process.env.DEEPSEEK_API_KEY };
+    providers.push({ name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', key: process.env.DEEPSEEK_API_KEY });
   }
   if (process.env.ZHIPU_API_KEY) {
-    return { name: 'Zhipu', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4.5-flash', key: process.env.ZHIPU_API_KEY };
+    providers.push({ name: 'Zhipu', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4.5-flash', key: process.env.ZHIPU_API_KEY });
   }
-  return null;
+  return providers;
 }
 
 async function callOpenAICompatible(name, baseUrl, model, key, system, user) {
@@ -75,9 +76,13 @@ async function callOpenAICompatible(name, baseUrl, model, key, system, user) {
 }
 
 async function llm(system, user) {
-  const provider = llmProvider();
-  if (!provider) return null;
-  return callOpenAICompatible(provider.name, provider.baseUrl, provider.model, provider.key, system, user);
+  const providers = llmProviders();
+  if (!providers.length) return null;
+  for (const provider of providers) {
+    const text = await callOpenAICompatible(provider.name, provider.baseUrl, provider.model, provider.key, system, user);
+    if (text) return text;
+  }
+  return null;
 }
 
 // ---------- 编辑规则 ----------
@@ -122,7 +127,7 @@ function fallbackBody(stats, compact) {
   lines.push('');
   lines.push('## 🧭 今日洞察');
   lines.push('');
-  lines.push(`**核心洞察**：本条为自动简报模式（未配置 LLM API Key），列出今日追踪对象的全部新动态：${stats.totalTweets} 条推文、${stats.blogPosts} 篇博客、${stats.podcastEpisodes} 期播客。配置 API Key 后将自动生成完整洞察版。`);
+  lines.push(`**核心洞察**：本条为自动简报模式（LLM 生成暂不可用），列出今日追踪对象的全部新动态：${stats.totalTweets} 条推文、${stats.blogPosts} 篇博客、${stats.podcastEpisodes} 期播客。LLM 恢复后将自动生成完整洞察版。`);
   lines.push('');
   lines.push('## 𝕏 / TWITTER');
   lines.push('');
@@ -177,6 +182,7 @@ function mergeIntoDate(text, dateKey, section) {
     if (line.trim() === header) {
       inSection = true;
       replaced = true;
+      out.push(header);
       out.push(section.trimEnd());
       continue;
     }
@@ -185,7 +191,7 @@ function mergeIntoDate(text, dateKey, section) {
   }
   if (replaced) return out.join('\n');
   const base = text.trimEnd();
-  return base ? `${base}\n\n${section}` : section;
+  return base ? `${base}\n\n${header}\n${section}` : `${header}\n${section}`;
 }
 
 // ---------- 主流程 ----------
@@ -243,32 +249,61 @@ async function writeDay(lang, dateKey, body) {
     if (line.trim() === `## ${dateKey}`) {
       inSection = true;
       replaced = true;
+      // 保留天级标题行：build.mjs 与缺失日期检测都依赖 '## YYYY-MM-DD'
+      out.push(`## ${dateKey}`);
       out.push(section.trimEnd());
       continue;
     }
     if (inSection && dayHeaderRe.test(line)) inSection = false;
     if (!inSection) out.push(line);
   }
-  if (!replaced) out.push(`${section.trimEnd()}\n`);
+  // 新日期：连同天级标题一起追加
+  if (!replaced) out.push(`## ${dateKey}\n${section.trimEnd()}\n`);
   await mkdir(DIGEST_DIR, { recursive: true });
   await writeFile(file, out.join('\n'), 'utf-8');
 }
 
-// 为目标日生成小节：DeepSeek 优先；无 Key 时中文降级简报
-async function generateEdition(dateKey) {
+// 读取某日期小节里记录的 feed 时间戳，无该日小节时返回 null
+function dayStamp(text, dateKey) {
+  const lines = text.split('\n');
+  let inSection = false;
+  const stamps = [];
+  for (const line of lines) {
+    if (line.trim() === `## ${dateKey}`) { inSection = true; continue; }
+    if (inSection && dayHeaderRe.test(line)) break;
+    if (inSection) {
+      const m = line.match(/^feed:\s*(.+?)\s*$/);
+      if (m) stamps.push(m[1]);
+    }
+  }
+  return stamps.length ? stamps[stamps.length - 1] : null;
+}
+
+// 为目标日生成小节：DeepSeek 优先、Zhipu 备用；都失败时——
+// 新日期写入降级简报，刷新已有日期则跳过（保留旧版，不用简报覆盖好内容）
+async function generateEdition(dateKey, { refresh = false } = {}) {
   const user = `Today is ${dateKey}. Feed JSON:\n${feedText}`;
-  const zh = await llm(ZH_RULES, user) || fallbackBody(stats, compact);
-  const en = zh === fallbackBody ? null : await llm(EN_RULES, user);
+  let zh = await llm(ZH_RULES, user);
+  const llmOk = !!zh;
+  if (!zh) {
+    if (refresh) {
+      log('refresh skipped, LLM unavailable for', dateKey);
+      return;
+    }
+    zh = fallbackBody(stats, compact);
+  }
+  const en = llmOk ? await llm(EN_RULES, user) : null;
   await writeDay('zh', dateKey, zh);
   if (en) await writeDay('en', dateKey, en);
-  log('edition written:', dateKey, zh === fallbackBody ? '(fallback)' : '(LLM)');
+  log('edition written:', dateKey, llmOk ? '(LLM)' : '(fallback)');
 }
 
 // 补齐从存档最早一天到今天之间所有缺失的日期
 const zhAllPath = join(DIGEST_DIR, month + '.zh.md');
 const existingDays = new Set();
+let zhAllText = null;
 if (existsSync(zhAllPath)) {
-  const zhAllText = await readFile(zhAllPath, 'utf-8');
+  zhAllText = await readFile(zhAllPath, 'utf-8');
   let mAll;
   const allRe = /^## (\d{4}-\d{2}-\d{2})\s*$/gm;
   while ((mAll = allRe.exec(zhAllText)) !== null) existingDays.add(mAll[1]);
@@ -282,6 +317,12 @@ const missing = [];
   }
 }
 
-for (const d of missing) await generateEdition(d);
+// 今天已有期号但来自更早的 feed 快照时，用最新快照刷新（仅 LLM 成功才覆盖）
+if (!missing.includes(TODAY) && existsSync(zhAllPath)) {
+  const cur = dayStamp(zhAllText, TODAY);
+  if (cur && cur !== FEED_STAMP) missing.push(TODAY);
+}
 
-log('DONE:', missing.length, 'day(s) backfilled');
+for (const d of missing) await generateEdition(d, { refresh: existingDays.has(d) });
+
+log('DONE:', missing.length, 'day(s) backfilled/refreshed');
