@@ -163,6 +163,14 @@ async function main() {
     status: 'ok',
     generatedAt: new Date().toISOString(),
 
+    // 中央快照自己的生成时间（三份 feed 的最大值）。快照内容只覆盖到这个
+    // 时间点，remix 用它判断"哪个北京日已被完整覆盖"，不能用抓取时间——
+    // 抓取时间比内容晚，会高估覆盖窗口。
+    contentThrough: [feedX?.generatedAt, feedPodcasts?.generatedAt, feedBlogs?.generatedAt]
+      .filter(Boolean)
+      .sort()
+      .pop() || null,
+
     // User preferences
     config: {
       language: config.language || 'en',

@@ -199,6 +199,8 @@ function mergeIntoDate(text, dateKey, section) {
 const feed = JSON.parse(await readFile(join(process.cwd(), 'feed.json'), 'utf-8'));
 const stats = feed.stats || {};
 const FEED_STAMP = feed.generatedAt || new Date().toISOString();
+// 中央快照的内容截止时间：期号戳与刷新守卫都用它（同一中央快照重复运行时不再重生成）
+const CONTENT_THROUGH = feed.contentThrough || feed.stats?.feedGeneratedAt || FEED_STAMP;
 log('feed stats:', JSON.stringify(stats), '| stamp:', FEED_STAMP);
 if (!stats.xBuilders && !stats.podcastEpisodes && !stats.blogPosts) {
   log('EMPTY feed - nothing to do');
@@ -207,40 +209,115 @@ if (!stats.xBuilders && !stats.podcastEpisodes && !stats.blogPosts) {
 
 const compact = {
   date: FEED_STAMP.slice(0, 10),
+  generatedAt: FEED_STAMP,
+  // 内容真实覆盖到的时间点（中央快照自己的生成时间），供完整日判定使用
+  contentThrough: feed.contentThrough || feed.stats?.feedGeneratedAt || FEED_STAMP,
   x: (feed.x || []).map((b) => ({
     name: b.name,
     bio: b.bio || '',
-    tweets: (b.tweets || []).map((t) => ({ text: t.text, url: t.url })),
+    tweets: (b.tweets || []).map((t) => ({ text: t.text, url: t.url, createdAt: t.createdAt || '' })),
   })),
   podcasts: (feed.podcasts || []).map((p) => ({
-    name: p.name, title: p.title, url: p.url,
+    name: p.name, title: p.title, url: p.url, publishedAt: p.publishedAt || '',
     transcript: (p.transcript || '').slice(0, 30000),
   })),
   blogs: (feed.blogs || []).map((b) => ({
-    name: b.name, title: b.title, url: b.url, author: b.author || '',
+    name: b.name, title: b.title, url: b.url, author: b.author || '', publishedAt: b.publishedAt || '',
     description: b.description || '', content: (b.content || '').slice(0, 2500),
   })),
 };
-const feedText = JSON.stringify(compact);
 
-const now = new Date();
-const TODAY = now.toISOString().slice(0, 10);
-const month = TODAY.slice(0, 7);
-const YD = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
-const YESTERDAY = YD.toISOString().slice(0, 10);
+// ---------- 北京日期归属 ----------
+// 用户要求帖子按其真实时间的北京日期归属期号。中央 feed 每天约 06:45 UTC
+// （北京 14:45）滚动更新一次，单份 24h 快照必然把"北京自然日"切在两份快照
+// 之间。把上一轮运行存档的快照（state/prev-feed.json，随仓库提交）与当前
+// 快照合并成 48h 窗口后，窗口内恰好有一个完整的北京日（当前快照生成日的
+// 前一天）。每次运行只为这个完整日生成/刷新期号，帖子按 createdAt 的北京
+// 日期归组，不再按 UTC 快照窗口切天。
+
+const BJ_OFFSET_MS = 8 * 3600e3;
+const bjDay = (iso) => (iso ? new Date(new Date(iso).getTime() + BJ_OFFSET_MS).toISOString().slice(0, 10) : '');
+
+const STATE_FILE = join(root, 'state', 'prev-feed.json');
+let prevSnap = null;
+try {
+  prevSnap = JSON.parse(await readFile(STATE_FILE, 'utf-8'));
+} catch {}
+
+function mergeSnaps(a, b) {
+  const snaps = [a, b].filter(Boolean);
+  if (!snaps.length) return null;
+  const xByName = new Map();
+  for (const s of snaps) for (const bd of s.x || []) {
+    if (!xByName.has(bd.name)) xByName.set(bd.name, { name: bd.name, bio: bd.bio || '', tweets: new Map() });
+    const ent = xByName.get(bd.name);
+    if (bd.bio && !ent.bio) ent.bio = bd.bio;
+    for (const t of bd.tweets || []) if (t.url && !ent.tweets.has(t.url)) ent.tweets.set(t.url, t);
+  }
+  const dedupe = (key) => {
+    const m = new Map();
+    for (const s of snaps) for (const it of s[key] || []) if (it.url && !m.has(it.url)) m.set(it.url, it);
+    return [...m.values()];
+  };
+  const stamps = snaps.map((s) => Date.parse(s.contentThrough || s.generatedAt || s.date || 0)).filter((n) => !Number.isNaN(n));
+  return {
+    generatedAt: new Date(Math.max(...stamps)).toISOString(),
+    // 内容覆盖窗口：每份快照内容 = [中央生成时间 - lookback(24h), 中央生成时间]
+    windowStart: new Date(Math.min(...stamps) - 24 * 3600e3).toISOString(),
+    windowEnd: new Date(Math.max(...stamps)).toISOString(),
+    x: [...xByName.values()].map((e) => ({ ...e, tweets: [...e.tweets.values()] })),
+    podcasts: dedupe('podcasts'),
+    blogs: dedupe('blogs'),
+  };
+}
+
+const merged = mergeSnaps(prevSnap, compact);
+if (!merged) {
+  log('no snapshot data - nothing to do');
+  process.exit(0);
+}
+
+// 合并窗口内"完整覆盖"的北京日。只检查窗口末端附近的三天：
+// 正常节奏下每天恰好产出一个新的完整日（北京"昨天"），
+// 有界扫描也防止陈旧 state 把窗口拉长后触发远古代码的重生成。
+function completeBeijingDays(win) {
+  const startMs = Date.parse(win.windowStart);
+  const endMs = Date.parse(win.windowEnd || win.generatedAt);
+  const days = [];
+  const latest = new Date(endMs + BJ_OFFSET_MS).toISOString().slice(0, 10);
+  for (let off = 0; off >= -2; off--) {
+    const key = new Date(Date.parse(latest + 'T00:00:00+08:00') + off * 86400000).toISOString().slice(0, 10);
+    const dayStart = Date.parse(key + 'T00:00:00+08:00');
+    if (dayStart >= startMs && dayStart + 24 * 3600e3 <= endMs) days.push(key);
+  }
+  return days; // 升序
+}
+
+function dayDataFor(dayKey) {
+  const inDay = (iso) => bjDay(iso) === dayKey;
+  const x = (merged.x || [])
+    .map((b) => ({ name: b.name, bio: b.bio, tweets: (b.tweets || []).filter((t) => inDay(t.createdAt)) }))
+    .filter((b) => b.tweets.length);
+  const podcasts = (merged.podcasts || []).filter((p) => inDay(p.publishedAt));
+  const blogs = (merged.blogs || []).filter((b) => inDay(b.publishedAt));
+  const totalTweets = x.reduce((n, b) => n + b.tweets.length, 0);
+  return {
+    x, podcasts, blogs,
+    stats: { totalTweets, blogPosts: blogs.length, podcastEpisodes: podcasts.length },
+  };
+}
 
 // ---------- 产品名下划线 + 点击知识卡（渲染期注入，构建脚本负责） ----------
 
 // （产品包裹由 build.mjs 在构建期完成，remix 只负责写 md）
 
-log('multi-day edition pass complete for', TODAY);
-
 // ---------- 生成与写入 ----------
 
 async function writeDay(lang, dateKey, body) {
+  const month = dateKey.slice(0, 7);
   const file = join(DIGEST_DIR, `${month}.${lang}.md`);
   let text = existsSync(file) ? await readFile(file, 'utf-8') : `# AI Builders Digest — ${month}`;
-  const section = `${body.trim()}\n\nfeed: ${FEED_STAMP}\n`;
+  const section = `${body.trim()}\n\nfeed: ${CONTENT_THROUGH}\n`;
   const lines = text.split('\n');
   const out = [];
   let inSection = false;
@@ -284,18 +361,18 @@ function dayStamp(text, dateKey) {
 // 因此没有"原文"按钮）。这里在写入前做确定性修复：给缺链接的 𝕏 段落补上
 // 该 builder 在本快照里的推文 URL，播客/博客块缺链接时补条目 URL。只增不删。
 
-function builderTweets(name, exclude) {
+function builderTweets(name, exclude, data) {
   const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const n = norm(name);
   if (!n) return [];
-  let cands = compact.x.filter((b) => norm(b.name) === n);
-  if (!cands.length) cands = compact.x.filter((b) => norm(b.name).includes(n) || n.includes(norm(b.name)));
+  let cands = (data.x || []).filter((b) => norm(b.name) === n);
+  if (!cands.length) cands = (data.x || []).filter((b) => norm(b.name).includes(n) || n.includes(norm(b.name)));
   const urls = [];
   for (const b of cands) for (const t of b.tweets) if (t.url && !exclude.has(t.url)) urls.push(t.url);
   return urls;
 }
 
-function repairUrls(body, source) {
+function repairUrls(body, source, data) {
   let added = 0;
   const sections = body.split(/\n(?=## )/);
   const out = sections.map((sec) => {
@@ -305,7 +382,7 @@ function repairUrls(body, source) {
       const m = sec.match(/^\*\*([^*]+)\*\*/m) || sec.match(/([A-Za-z][A-Za-z0-9 .&']{2,40})/);
       if (!m) return sec;
       const norm = (s) => (s || '').toLowerCase();
-      const pool = /PODCASTS/i.test(sec) ? compact.podcasts : compact.blogs;
+      const pool = /PODCASTS/i.test(sec) ? (data.podcasts || []) : (data.blogs || []);
       let best = null, bestScore = 0;
       for (const it of pool) {
         let score = 0;
@@ -332,7 +409,7 @@ function repairUrls(body, source) {
           if (!/https?:\/\//.test(text)) {
             const nameM = text.match(/^\*\*([^*]+)\*\*/) || text.match(/^([A-Za-z][A-Za-z0-9 .&']{2,40}?)[,，:：]/);
             if (nameM) {
-              const urls = builderTweets(nameM[1], seen);
+              const urls = builderTweets(nameM[1], seen, data);
               if (urls.length) {
                 para.push(...urls);
                 urls.forEach((u) => seen.add(u));
@@ -361,7 +438,8 @@ function repairUrls(body, source) {
 
 // 为目标日生成小节：DeepSeek 优先、Zhipu 备用；都失败时——
 // 新日期写入降级简报，刷新已有日期则跳过（保留旧版，不用简报覆盖好内容）
-async function generateEdition(dateKey, { refresh = false } = {}) {
+async function generateEdition(dateKey, dayData, { refresh = false } = {}) {
+  const feedText = JSON.stringify(dayData);
   const user = `Today is ${dateKey}. Feed JSON:\n${feedText}`;
   let zh = await llm(ZH_RULES, user);
   const llmOk = !!zh;
@@ -370,52 +448,43 @@ async function generateEdition(dateKey, { refresh = false } = {}) {
       log('refresh skipped, LLM unavailable for', dateKey);
       return;
     }
-    zh = fallbackBody(stats, compact);
+    zh = fallbackBody(dayData.stats, dayData);
   } else {
-    zh = repairUrls(zh, `zh ${dateKey}`).body;
+    zh = repairUrls(zh, `zh ${dateKey}`, dayData).body;
   }
   let en = llmOk ? await llm(EN_RULES, user) : null;
-  if (en) en = repairUrls(en, `en ${dateKey}`).body;
+  if (en) en = repairUrls(en, `en ${dateKey}`, dayData).body;
   await writeDay('zh', dateKey, zh);
   if (en) await writeDay('en', dateKey, en);
   log('edition written:', dateKey, llmOk ? '(LLM)' : '(fallback)');
 }
 
-// 补齐从存档最早一天到今天之间所有缺失的日期。
-// existingDays 必须跨月统计：backfill 窗口常跨月边界，若只看当月文件，
-// 上月末几天会被误判为缺失，每次运行都用降级简报覆盖上月存档。
-const zhAllPath = join(DIGEST_DIR, month + '.zh.md');
-const existingDays = new Set();
-let zhAllText = null;
-{
-  let files = [];
-  try {
-    files = await readdir(DIGEST_DIR);
-  } catch {}
-  for (const f of files) {
-    if (!f.endsWith('.zh.md')) continue;
-    const text = await readFile(join(DIGEST_DIR, f), 'utf-8');
-    if (f === `${month}.zh.md`) zhAllText = text;
-    let mAll;
-    const allRe = /^## (\d{4}-\d{2}-\d{2})\s*$/gm;
-    while ((mAll = allRe.exec(text)) !== null) existingDays.add(mAll[1]);
-  }
-}
-const missing = [];
-{
-  const s = new Date(TODAY + 'T00:00:00Z').getTime();
-  for (let t = s - 13 * 86400000; t <= s; t += 86400000) {
-    const key = new Date(t).toISOString().slice(0, 10);
-    if (!existingDays.has(key)) missing.push(key);
+// 只为合并窗口内完整覆盖的北京日生成期号；已有期号且快照戳相同则跳过。
+// 只生成最新的一个：更早的完整日在前一轮已经生成并稳定，重生成纯属浪费
+const days = completeBeijingDays(merged);
+log('complete Beijing day(s) in merged window:', days.join(', ') || '(none)');
+const dayKey = days[days.length - 1];
+let generated = 0;
+if (dayKey) {
+  const dayData = dayDataFor(dayKey);
+  if (!dayData.stats.totalTweets && !dayData.stats.blogPosts && !dayData.stats.podcastEpisodes) {
+    log('skip', dayKey, '- no content in merged window');
+  } else {
+    const monthFile = join(DIGEST_DIR, dayKey.slice(0, 7) + '.zh.md');
+    let existing = null;
+    try { existing = await readFile(monthFile, 'utf-8'); } catch {}
+    const stamp = existing ? dayStamp(existing, dayKey) : null;
+    if (stamp === CONTENT_THROUGH) {
+      log('skip', dayKey, '- already generated from this snapshot');
+    } else {
+      await generateEdition(dayKey, dayData, { refresh: !!stamp });
+      generated += 1;
+    }
   }
 }
 
-// 今天已有期号但来自更早的 feed 快照时，用最新快照刷新（仅 LLM 成功才覆盖）
-if (!missing.includes(TODAY) && zhAllText) {
-  const cur = dayStamp(zhAllText, TODAY);
-  if (cur && cur !== FEED_STAMP) missing.push(TODAY);
-}
+// 存档本轮快照，供下一轮合并出 48h 窗口
+await mkdir(join(root, 'state'), { recursive: true });
+await writeFile(STATE_FILE, JSON.stringify(compact), 'utf-8');
 
-for (const d of missing) await generateEdition(d, { refresh: existingDays.has(d) });
-
-log('DONE:', missing.length, 'day(s) backfilled/refreshed');
+log('DONE:', generated, 'Beijing-day edition(s) generated/refreshed');
