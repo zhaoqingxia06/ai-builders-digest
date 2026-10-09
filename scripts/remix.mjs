@@ -289,9 +289,13 @@ function actionableBeijingDays(win) {
   const startMs = Date.parse(win.windowStart);
   const endMs = Date.parse(win.windowEnd || win.generatedAt);
   const days = [];
+  // 窗口末端（UTC 瞬间）+8h 后的日历日 = 它所在的北京日
   const latest = new Date(endMs + BJ_OFFSET_MS).toISOString().slice(0, 10);
+  // 注意：候选 key 的日历偏移必须用纯日期运算（固定 Z 时区），
+  // 一旦把北京午夜时间戳再 toISOString 就会整体错位一天
+  const baseMs = Date.parse(latest + 'T00:00:00Z');
   for (let off = 0; off >= -2; off--) {
-    const key = new Date(Date.parse(latest + 'T00:00:00+08:00') + off * 86400000).toISOString().slice(0, 10);
+    const key = new Date(baseMs + off * 86400e3).toISOString().slice(0, 10);
     const dayStart = Date.parse(key + 'T00:00:00+08:00');
     const complete = dayStart >= startMs && dayStart + 24 * 3600e3 <= endMs;
     if (off === 0 || complete) days.push(key);
