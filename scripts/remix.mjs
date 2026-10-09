@@ -228,12 +228,14 @@ const compact = {
 };
 
 // ---------- 北京日期归属 ----------
-// 用户要求帖子按其真实时间的北京日期归属期号。中央 feed 每天约 06:45 UTC
-// （北京 14:45）滚动更新一次，单份 24h 快照必然把"北京自然日"切在两份快照
-// 之间。把上一轮运行存档的快照（state/prev-feed.json，随仓库提交）与当前
-// 快照合并成 48h 窗口后，窗口内恰好有一个完整的北京日（当前快照生成日的
-// 前一天）。每次运行只为这个完整日生成/刷新期号，帖子按 createdAt 的北京
-// 日期归组，不再按 UTC 快照窗口切天。
+// 用户要求帖子按其真实时间的北京日期归属期号，且页面始终展示北京时间下
+// 最新的内容。中央 feed 每天约 06:45 UTC（北京 14:45）滚动更新一次，单份
+// 24h 快照必然把"北京自然日"切在两份快照之间。把上一轮运行存档的快照
+// （state/prev-feed.json，随仓库提交）与当前快照合并成 48h 窗口，每轮处理：
+//   1. 窗口末端的北京日（"今天"）——每轮滚动刷新（部分日随中央快照累积），
+//      让页面当天就能看到当天内容；
+//   2. 更早的北京日——窗口完整覆盖时才定稿（昨天在 14:45 更新后即完整）。
+// 帖子按 createdAt 的北京日期归组，不按 UTC 快照窗口切天。
 
 const BJ_OFFSET_MS = 8 * 3600e3;
 const bjDay = (iso) => (iso ? new Date(new Date(iso).getTime() + BJ_OFFSET_MS).toISOString().slice(0, 10) : '');
@@ -277,10 +279,13 @@ if (!merged) {
   process.exit(0);
 }
 
-// 合并窗口内"完整覆盖"的北京日。只检查窗口末端附近的三天：
-// 正常节奏下每天恰好产出一个新的完整日（北京"昨天"），
-// 有界扫描也防止陈旧 state 把窗口拉长后触发远古代码的重生成。
-function completeBeijingDays(win) {
+// 每轮要生成/刷新的北京日（升序）：
+// 1. 窗口末端所在的北京日（"今天"）——始终纳入，随中央快照累积滚动刷新，
+//    保证页面展示的永远是北京时间下最新的内容；
+// 2. 更早的北京日——仅当窗口已完整覆盖（24h 全在窗口内）时才定稿刷新，
+//    防止用半截数据覆盖已完整的历史期号。
+// 只检查窗口末端附近三天，陈旧 state 不会触发远古期号的重生成。
+function actionableBeijingDays(win) {
   const startMs = Date.parse(win.windowStart);
   const endMs = Date.parse(win.windowEnd || win.generatedAt);
   const days = [];
@@ -288,9 +293,10 @@ function completeBeijingDays(win) {
   for (let off = 0; off >= -2; off--) {
     const key = new Date(Date.parse(latest + 'T00:00:00+08:00') + off * 86400000).toISOString().slice(0, 10);
     const dayStart = Date.parse(key + 'T00:00:00+08:00');
-    if (dayStart >= startMs && dayStart + 24 * 3600e3 <= endMs) days.push(key);
+    const complete = dayStart >= startMs && dayStart + 24 * 3600e3 <= endMs;
+    if (off === 0 || complete) days.push(key);
   }
-  return days; // 升序
+  return [...new Set(days)].sort(); // 升序：先定稿更早的，最后刷新今天
 }
 
 function dayDataFor(dayKey) {
@@ -459,28 +465,27 @@ async function generateEdition(dateKey, dayData, { refresh = false } = {}) {
   log('edition written:', dateKey, llmOk ? '(LLM)' : '(fallback)');
 }
 
-// 只为合并窗口内完整覆盖的北京日生成期号；已有期号且快照戳相同则跳过。
-// 只生成最新的一个：更早的完整日在前一轮已经生成并稳定，重生成纯属浪费
-const days = completeBeijingDays(merged);
-log('complete Beijing day(s) in merged window:', days.join(', ') || '(none)');
-const dayKey = days[days.length - 1];
+// 生成/刷新本轮所有可处理的北京日（升序：先定稿历史日，最后滚动刷新今天）；
+// 已有期号且内容戳相同则跳过，避免同一天内重复空转
+const days = actionableBeijingDays(merged);
+log('actionable Beijing day(s):', days.join(', ') || '(none)');
 let generated = 0;
-if (dayKey) {
+for (const dayKey of days) {
   const dayData = dayDataFor(dayKey);
   if (!dayData.stats.totalTweets && !dayData.stats.blogPosts && !dayData.stats.podcastEpisodes) {
     log('skip', dayKey, '- no content in merged window');
-  } else {
-    const monthFile = join(DIGEST_DIR, dayKey.slice(0, 7) + '.zh.md');
-    let existing = null;
-    try { existing = await readFile(monthFile, 'utf-8'); } catch {}
-    const stamp = existing ? dayStamp(existing, dayKey) : null;
-    if (stamp === CONTENT_THROUGH) {
-      log('skip', dayKey, '- already generated from this snapshot');
-    } else {
-      await generateEdition(dayKey, dayData, { refresh: !!stamp });
-      generated += 1;
-    }
+    continue;
   }
+  const monthFile = join(DIGEST_DIR, dayKey.slice(0, 7) + '.zh.md');
+  let existing = null;
+  try { existing = await readFile(monthFile, 'utf-8'); } catch {}
+  const stamp = existing ? dayStamp(existing, dayKey) : null;
+  if (stamp === CONTENT_THROUGH) {
+    log('skip', dayKey, '- already generated from this snapshot');
+    continue;
+  }
+  await generateEdition(dayKey, dayData, { refresh: !!stamp });
+  generated += 1;
 }
 
 // 存档本轮快照，供下一轮合并出 48h 窗口
