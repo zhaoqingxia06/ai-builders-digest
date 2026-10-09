@@ -802,7 +802,7 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
         const ms = Date.parse(t.createdAt);
         if (!ms || bjDay(ms) !== nowDay) continue;
         if (known.has(t.url)) continue;
-        items.push({ ms, name: b.name, text: (t.text || '').replace(/https:\/\/t\.co\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 220), url: t.url });
+        items.push({ ms, name: b.name, text: (t.text || '').replace(/https:\\/\\/t\\.co\\/\\S+/g, '').replace(/\\s+/g, ' ').trim().slice(0, 220), url: t.url });
       }
     }
     for (const p of pods) {
@@ -810,7 +810,7 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
       const ms = Date.parse(p.publishedAt);
       if (!ms || bjDay(ms) !== nowDay) continue;
       if (known.has(p.url)) continue;
-      items.push({ ms, name: p.name, text: (p.title || '').replace(/\s+/g, ' ').trim().slice(0, 220), url: p.url });
+      items.push({ ms, name: p.name, text: (p.title || '').replace(/\\s+/g, ' ').trim().slice(0, 220), url: p.url });
     }
     if (!items.length) return;
     items.sort((a, b) => b.ms - a.ms);
