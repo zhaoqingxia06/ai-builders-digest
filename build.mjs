@@ -75,17 +75,37 @@ function parseKeywords(md) {
   return { ...meta, body };
 }
 
+// snowflake id -> 发帖时间的北京时间字符串（MM-DD HH:MM）
+function tweetBjTime(id) {
+  try {
+    const d = new Date(Number((BigInt(id) >> 22n) + 1288834974657n) + 8 * 3600e3);
+    return d.toISOString().slice(5, 10).replace('-', '月') + '日 ' + d.toISOString().slice(11, 16);
+  } catch { return ''; }
+}
+
 function srcChip(url) {
   let label = '原文';
+  let tweetAttr = '';
+  let timeHtml = '';
   try {
     const u = new URL(url);
     const h = u.hostname.replace(/^www\./, '');
-    if (/^(x|twitter)\.com$/.test(h)) label = 'X 原文';
+    if (/^(x|twitter)\.com$/.test(h)) {
+      label = 'X 原文';
+      // status links open in the in-page source panel; keep href as fallback
+      const st = url.match(/\/[^/]+\/status(?:es)?\/(\d+)/);
+      if (st) {
+        tweetAttr = ` data-tweet="${st[1]}"`;
+        // 展示发帖时间对应的北京时间
+        const bj = tweetBjTime(st[1]);
+        if (bj) timeHtml = `<span class="src-time">${bj}</span>`;
+      }
+    }
     else if (h.includes('youtu')) label = 'YouTube';
     else if (h === 'github.com') label = 'GitHub';
     else label = h;
   } catch {}
-  return `<div class="src"><a class="src-link" href="${url}" target="_blank" rel="noopener" title="${url}">${ICON_LINK}<span>${label}</span></a></div>`;
+  return `<div class="src"><a class="src-link"${tweetAttr} href="${url}" target="_blank" rel="noopener" title="${url}">${ICON_LINK}<span>${label}</span>${timeHtml}</a></div>`;
 }
 
 function mdToHtml(md) {
@@ -513,6 +533,36 @@ async function main() {
   .src-link:hover { text-decoration: underline; }
   .src-link svg { flex: none; }
   .src-link span { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .src-time { color: var(--muted); font-weight: 400; max-width: none !important; }
+
+  /* ---------- live updates: relay's newest posts, fetched on open ---------- */
+  .live {
+    background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 14px; padding: 16px 20px; margin: 0 0 26px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  }
+  .live[hidden] { display: none; }
+  .live-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #e5484d;
+    box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.18); align-self: center; flex: none;
+    animation: livePulse 2s ease-in-out infinite;
+  }
+  @keyframes livePulse { 50% { opacity: 0.35; } }
+  .live-title { font-size: 15px; font-weight: 700; }
+  .live-clock { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .live-note { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .live-list { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; }
+  .live-list li {
+    display: grid; grid-template-columns: 44px auto 1fr auto; gap: 10px;
+    align-items: baseline; padding: 7px 0; border-bottom: 1px dashed var(--border);
+    font-size: 13.5px; line-height: 1.6;
+  }
+  .live-list li:last-child { border-bottom: none; }
+  .lv-time { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lv-name { font-weight: 700; white-space: nowrap; }
+  .lv-text { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .lv-link { white-space: nowrap; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   article em { color: var(--muted); }
@@ -551,6 +601,76 @@ async function main() {
   .pp-desc { font-size: 13px; line-height: 1.8; color: #48484a; }
   @media (max-width: 800px) {
     .prod-panel { left: 12px; right: 12px; top: auto; bottom: 90px; width: auto; }
+  }
+
+  /* ---------- source card: original post under the calendar ---------- */
+  .src-link[data-tweet] { cursor: pointer; }
+  .src-link.active { font-weight: 700; }
+  .src-card {
+    margin-top: 14px;
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.05); border-radius: 18px;
+    padding: 12px 12px 4px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    scroll-margin-top: 100px;
+  }
+  .sc-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 4px 8px;
+  }
+  .sc-title {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 700; color: var(--muted);
+  }
+  .sc-title svg { width: 12px; height: 12px; color: var(--text); flex: none; }
+  .sc-close {
+    border: none; background: transparent; cursor: pointer;
+    font-size: 18px; line-height: 1; color: var(--muted);
+    padding: 2px 6px; border-radius: 6px; transition: background 0.15s ease;
+  }
+  .sc-close:hover { color: var(--text); background: var(--soft); }
+  .sc-body { overflow: hidden; border-radius: 12px; }
+  .sc-body .twitter-tweet { margin: 0 !important; }
+  .sc-body iframe { max-width: 100%; }
+  @media (min-width: 801px) {
+    /* the sticky sidebar must stay within the viewport once the source card
+       grows it past one screen — scroll inside the column instead */
+    .side:has(.src-card:not([hidden])) {
+      max-height: calc(100vh - 116px);
+      overflow-y: auto; scrollbar-width: thin;
+    }
+  }
+  .sk {
+    border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+  }
+  .sk-row, .sk-ava {
+    background: linear-gradient(90deg, #ececf0 25%, #f6f6f8 45%, #ececf0 65%);
+    background-size: 200% 100%;
+    animation: skshine 1.3s infinite linear;
+  }
+  .sk-row { height: 11px; border-radius: 6px; margin-bottom: 10px; }
+  .sk-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .sk-ava { width: 40px; height: 40px; border-radius: 50%; flex: none; }
+  @keyframes skshine { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  .sp-error {
+    border: 1px solid var(--border); border-radius: 12px; padding: 18px 14px;
+    text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.75;
+  }
+  .sp-error .btns { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .sp-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12.5px; font-weight: 600; line-height: 1.4;
+    padding: 6px 15px; border-radius: 980px; cursor: pointer;
+    color: #fff; background: var(--accent); border: none;
+    text-decoration: none;
+  }
+  .sp-btn:hover { opacity: 0.85; }
+  .sp-btn.ghost { color: var(--accent); background: transparent; border: 1px solid rgba(0, 113, 227, 0.4); }
+  .sp-btn.ghost:hover { background: var(--soft); opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .sk-row, .sk-ava { animation: none; }
   }
 
   /* ---------- language toggle: frosted pill ---------- */
@@ -593,11 +713,20 @@ async function main() {
 <div class="wrap">
   <div class="page-head">
     <h1>AI Builders Digest</h1>
-    <div class="mast-meta"><span class="lang-zh">第 ${entries.length} 期 · 每天早上 8:00 更新 · ${todayKey} 刊</span><span class="lang-en">Issue ${entries.length} · Updated daily at 8:00 AM · ${todayKey}</span></div>
+    <div class="mast-meta"><span class="lang-zh">第 ${entries.length} 期 · 每天北京时间 6/10/12/16/20/24 点更新 · ${todayKey} 刊</span><span class="lang-en">Issue ${entries.length} · Refreshed 6×daily at 06/10/12/16/20/24 (GMT+8) · ${todayKey}</span></div>
   </div>
 
   <div class="layout">
     <main class="main">
+      <section id="liveFeed" class="live" hidden>
+        <div class="live-head">
+          <span class="live-dot"></span>
+          <span class="live-title"><span class="lang-zh">最新动态 · 实时</span><span class="lang-en">Live updates</span></span>
+          <span class="live-clock" id="liveClock"></span>
+        </div>
+        <div class="live-note"><span class="lang-zh">中转站今天（北京时间）最新获取的原帖，尚未进入编辑摘要——定时运行后由摘要收录。</span><span class="lang-en">Newest raw posts from the relay (Beijing time), not yet covered by the editorial digests.</span></div>
+        <ol class="live-list" id="liveList"></ol>
+      </section>
       ${articles}
       <div class="day-empty" id="dayEmpty" hidden>
         <span class="lang-zh">这一天没有摘要</span><span class="lang-en">No digest for this day</span>
@@ -628,6 +757,13 @@ async function main() {
     </div>
     <div class="cal-grid" id="calGrid"></div>
       </div>
+      <div class="src-card" id="srcCard" hidden>
+        <div class="sc-head">
+          <span class="sc-title"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg><span class="lang-zh">原帖</span><span class="lang-en">Original post</span></span>
+          <button class="sc-close" id="spClose" type="button" aria-label="关闭 / Close">×</button>
+        </div>
+        <div class="sc-body" id="spBody"></div>
+      </div>
     </aside>
   </div>
 
@@ -643,6 +779,51 @@ const DIGEST_DATES = ${datesJson};
 const TODAY_KEY = ${JSON.stringify(todayKey)};
 const PRODUCT_KB = ${JSON.stringify(PRODUCT_KB)};
 const LATEST_KEY = ${JSON.stringify(latestKey)};
+
+// ---------- 中转站实时内容：每次打开页面拉取最新原帖 ----------
+// 只展示北京时间"今天"的、且尚未被任何期号收录（页面上无对应链接）的帖子；
+// 按发帖时间（北京时间）倒序。拉取失败时静默隐藏，不影响正文阅读。
+(async () => {
+  try {
+    const BJ = 8 * 3600e3;
+    const bjDay = (ms) => new Date(ms + BJ).toISOString().slice(0, 10);
+    const bjHM = (ms) => new Date(ms + BJ).toISOString().slice(11, 16);
+    const nowDay = bjDay(Date.now());
+    const base = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/';
+    const [xr, pr] = await Promise.all([fetch(base + 'feed-x.json'), fetch(base + 'feed-podcasts.json')]);
+    if (!xr.ok) return;
+    const data = await xr.json();
+    const pods = pr.ok ? (await pr.json()).podcasts || [] : [];
+    const known = new Set([...document.querySelectorAll('a.src-link')].map((a) => a.href));
+    const items = [];
+    for (const b of data.x || []) {
+      for (const t of b.tweets || []) {
+        if (!t.url || !t.createdAt) continue;
+        const ms = Date.parse(t.createdAt);
+        if (!ms || bjDay(ms) !== nowDay) continue;
+        if (known.has(t.url)) continue;
+        items.push({ ms, name: b.name, text: (t.text || '').replace(/https:\/\/t\.co\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 220), url: t.url });
+      }
+    }
+    for (const p of pods) {
+      if (!p.url || !p.publishedAt) continue;
+      const ms = Date.parse(p.publishedAt);
+      if (!ms || bjDay(ms) !== nowDay) continue;
+      if (known.has(p.url)) continue;
+      items.push({ ms, name: p.name, text: (p.title || '').replace(/\s+/g, ' ').trim().slice(0, 220), url: p.url });
+    }
+    if (!items.length) return;
+    items.sort((a, b) => b.ms - a.ms);
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    document.getElementById('liveList').innerHTML = items.slice(0, 40).map((it) =>
+      '<li><span class="lv-time">' + bjHM(it.ms) + '</span><span class="lv-name">' + esc(it.name || '') + '</span>' +
+      '<span class="lv-text">' + esc(it.text) + '</span>' +
+      '<a class="lv-link" href="' + it.url + '" target="_blank" rel="noopener"><span class="lang-zh">原文</span><span class="lang-en">open</span></a></li>'
+    ).join('');
+    document.getElementById('liveClock').textContent = bjHM(Date.now());
+    document.getElementById('liveFeed').hidden = false;
+  } catch (e) { console.warn('live feed unavailable:', e); }
+})();
 
 // month calendar grid + one-day-at-a-time view
 (function () {
@@ -746,7 +927,8 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
   // absent or not a date; later hashchange events with non-date hashes keep
   // the current view untouched.
   function route(initial) {
-    var m = location.hash.match(/^#d-(\d{4}-\d{2}-\d{2})$/);
+    // [0-9] not \d — backslashes don't survive this template literal
+    var m = location.hash.match(/^#d-([0-9]{4}-[0-9]{2}-[0-9]{2})$/);
     var k;
     if (m) k = m[1];
     else {
@@ -810,6 +992,176 @@ const LATEST_KEY = ${JSON.stringify(latestKey)};
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   document.getElementById('ppClose').addEventListener('click', close);
+})();
+
+// source card: open the original X post under the calendar in the sidebar
+// instead of leaving the page. Renders the official embed via widgets.js (the
+// syndication JSON API is CORS-locked to platform.twitter.com, so embeds are
+// the only client-side option). Falls back to an "open on X" card when
+// unreachable.
+(function () {
+  var card = document.getElementById('srcCard');
+  if (!card) return;
+  var body = document.getElementById('spBody');
+  var loadSeq = 0;   // guards stale async results after switching tweets
+  var lastId = '';
+  var lastUrl = '';
+
+  var ZH = {
+    netfail: '暂时无法连接到 X，请检查网络（或代理）后重试。',
+    fail: '原帖加载失败，可能已被删除或设置了访问限制。',
+    retry: '重试',
+    open: '在 X 打开'
+  };
+  var EN = {
+    netfail: 'Could not reach X right now — check your network (or proxy) and retry.',
+    fail: 'Could not load this post — it may have been deleted or made private.',
+    retry: 'Retry',
+    open: 'Open on X'
+  };
+  function t(key) { return (document.body.dataset.lang === 'en' ? EN : ZH)[key]; }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function mark(id) {
+    var all = document.querySelectorAll('.src-link[data-tweet]');
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.toggle('active', all[i].getAttribute('data-tweet') === id);
+    }
+  }
+
+  function show() {
+    if (!card.hidden) return;
+    card.hidden = false;
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function close() {
+    if (card.hidden) return;
+    card.hidden = true;
+    mark('');
+    body.innerHTML = '';
+  }
+
+  // ---- widgets.js loader: injected once, on first use ----
+  var wjsState = 0; // 0 idle, 1 loading, 2 ready, 3 failed
+  var wjsWaiters = [];
+  function ensureWidgets() {
+    if (wjsState === 2) return Promise.resolve();
+    if (wjsState === 3) return Promise.reject(new Error('widgets.js unavailable'));
+    return new Promise(function (resolve, reject) {
+      wjsWaiters.push([resolve, reject]);
+      if (wjsState === 1) return;
+      wjsState = 1;
+      var s = document.createElement('script');
+      s.id = 'sp-wjs';
+      s.src = 'https://platform.twitter.com/widgets.js';
+      s.async = true;
+      s.charset = 'utf-8';
+      s.onload = function () {
+        if (!window.twttr || !window.twttr.widgets) { settle(3); return; }
+        settle(2);
+      };
+      s.onerror = function () { settle(3); };
+      document.head.appendChild(s);
+      setTimeout(function () { if (wjsState === 1) settle(3); }, 12000);
+      function settle(state) {
+        if (wjsState === 2 || wjsState === 3) return;
+        wjsState = state;
+        wjsWaiters.forEach(function (w) { state === 2 ? w[0]() : w[1](new Error('widgets.js unavailable')); });
+        wjsWaiters = [];
+      }
+    });
+  }
+
+  function skeleton() {
+    var row = '<div class="sk-row"></div>';
+    return '<div class="sk">'
+      + '<div class="sk-head"><span class="sk-ava"></span><span class="sk-row" style="flex:1;margin:0"></span></div>'
+      + row + row + '<div class="sk-row" style="width:72%"></div>'
+      + '<div class="sk-row" style="height:120px;border-radius:10px;margin-top:14px"></div>'
+      + '</div>';
+  }
+
+  function errorHtml(msgKey) {
+    return '<div class="sp-error"><div>' + esc(t(msgKey)) + '</div><div class="btns">'
+      + '<button type="button" class="sp-btn" id="spRetry">' + esc(t('retry')) + '</button>'
+      + '<a class="sp-btn ghost" href="' + esc(lastUrl || ('https://x.com/i/web/status/' + lastId)) + '" target="_blank" rel="noopener">' + esc(t('open')) + ' ↗</a>'
+      + '</div></div>';
+  }
+
+  function load(id, url) {
+    if (!/^[0-9]+$/.test(id)) return;
+    lastId = id;
+    if (url) lastUrl = url;
+    var seq = ++loadSeq;
+    mark(id);
+    show();
+    body.scrollTop = 0;
+    body.innerHTML = skeleton();
+    if (wjsState === 3) wjsState = 0; // retry may follow a network recovery
+    ensureWidgets().then(function () {
+      if (seq !== loadSeq) return;
+      var holder = document.createElement('div');
+      body.innerHTML = '';
+      body.appendChild(holder);
+      var settled = false;
+      var opts = {
+        conversation: 'none',
+        dnt: true,
+        align: 'center',
+        theme: 'light',
+        lang: document.body.dataset.lang === 'en' ? 'en' : 'zh-cn',
+        width: Math.min(550, Math.max(200, (body.clientWidth || 236) - 2))
+      };
+      try {
+        var p = window.twttr.widgets.createTweet(id, holder, opts);
+        if (p && typeof p.then === 'function') {
+          p.then(function () { settled = true; }).catch(function () {
+            if (seq === loadSeq) body.innerHTML = errorHtml('fail');
+          });
+        }
+      } catch (e) {
+        body.innerHTML = errorHtml('fail');
+        return;
+      }
+      setTimeout(function () {
+        if (seq !== loadSeq || settled) return;
+        // an iframe exists as soon as createTweet runs; only a real render
+        // gives it height. Still 0-height after 12s = stuck or unreachable:
+        // append a recovery card but keep watching — a late render removes it.
+        var f = holder.querySelector('iframe');
+        if (!f || f.getBoundingClientRect().height < 40) {
+          var err = document.createElement('div');
+          err.innerHTML = errorHtml('netfail');
+          body.appendChild(err);
+          var watch = setInterval(function () {
+            if (seq !== loadSeq || !err.parentNode) { clearInterval(watch); return; }
+            var ff = holder.querySelector('iframe');
+            if (ff && ff.getBoundingClientRect().height >= 40) { err.remove(); clearInterval(watch); }
+          }, 800);
+        }
+      }, 12000);
+    }).catch(function () {
+      if (seq === loadSeq) body.innerHTML = errorHtml('netfail');
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var el = e.target;
+    if (!(el && el.closest)) return;
+    var chip = el.closest('a.src-link[data-tweet]');
+    if (chip) {
+      e.preventDefault();
+      load(chip.getAttribute('data-tweet'), chip.getAttribute('href'));
+      return;
+    }
+    if (el.closest('#spClose')) { close(); return; }
+    if (el.closest('#spRetry')) { load(lastId, lastUrl); return; }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 })();
 
 (function () {
