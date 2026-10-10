@@ -6,7 +6,7 @@ You are assembling the final digest from individual source summaries.
 
 Start with this header (replace [Date] with today's date):
 
-AI Builders Digest — [Date]
+Ai News — [Date]
 
 Then organize content in this order:
 

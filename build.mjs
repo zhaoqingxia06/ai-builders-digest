@@ -376,7 +376,7 @@ async function main() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Builders Digest</title>
+<title>Ai News</title>
 <style>
   :root {
     --bg: #f5f5f7;
@@ -683,7 +683,7 @@ async function main() {
 </div>
 <div class="wrap">
   <div class="page-head">
-    <h1>AI Builders Digest</h1>
+    <h1>Ai News</h1>
     <div class="mast-meta"><span class="lang-zh">第 ${entries.length} 期 · 每天多次更新，新内容约 15:30–16:30 上线 · ${todayKey} 刊</span><span class="lang-en">Issue ${entries.length} · Refreshed several times daily — new posts land ~15:30–16:30 (GMT+8) · ${todayKey}</span></div>
   </div>
 

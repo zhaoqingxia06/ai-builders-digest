@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ============================================================================
-// AI Builders Digest — Remix（自有管线，无 skill 依赖）
+// Ai News — Remix（自有管线，无 skill 依赖）
 // ----------------------------------------------------------------------------
 // 职责：
 // 1. 读取 feed.json（prepare-digest.js 抓取的内容快照）
@@ -87,7 +87,7 @@ async function llm(system, user) {
 
 // ---------- 编辑规则 ----------
 
-const ZH_RULES = `你是「AI Builders Digest」的编辑，把给定的 AI builder 动态 JSON 改写成当天摘要的小节正文。硬性规则：
+const ZH_RULES = `你是「Ai News」的编辑，把给定的 AI builder 动态 JSON 改写成当天摘要的小节正文。硬性规则：
 1. 只使用 JSON 里的内容，绝不编造；每条动态末尾独占一行放 JSON 给出的原文 URL，没有 URL 的内容不要收录。
 2. 不使用 @ 句柄（写姓名全称）；职位头衔只用 JSON bio 字段给的，否则只写姓名。
 3. 不用破折号连接句子；技术名词（AI、agent、LLM、stablecoin 等）、人名、公司名、URL 保留英文。
@@ -101,7 +101,7 @@ const ZH_RULES = `你是「AI Builders Digest」的编辑，把给定的 AI buil
 6. 闲聊、纯宣传、拉票推文跳过；没提的 builder 不要出现。
 7. 不要输出 "## 日期" 格式的标题（如 ## 2026-09-23），直接从 keywords 行开始；不要输出任何解释、前言或代码围栏。`;
 
-const EN_RULES = `You are the editor of "AI Builders Digest". Rewrite the given AI-builder activity JSON into the day's digest section body. Hard rules:
+const EN_RULES = `You are the editor of "Ai News". Rewrite the given AI-builder activity JSON into the day's digest section body. Hard rules:
 1. Use ONLY content from the JSON; never invent. End every item with its original URL from the JSON on its own line; drop items without a URL.
 2. Never use @handles (write full names); only use job titles given in the JSON bio field, otherwise just the name.
 3. No em-dashes; keep technical terms (AI, agent, LLM, stablecoin...), names, and URLs in English as-is.
@@ -326,7 +326,7 @@ function dayDataFor(dayKey) {
 async function writeDay(lang, dateKey, body) {
   const month = dateKey.slice(0, 7);
   const file = join(DIGEST_DIR, `${month}.${lang}.md`);
-  let text = existsSync(file) ? await readFile(file, 'utf-8') : `# AI Builders Digest — ${month}`;
+  let text = existsSync(file) ? await readFile(file, 'utf-8') : `# Ai News — ${month}`;
   const section = `${body.trim()}\n\nfeed: ${CONTENT_THROUGH}\n`;
   const lines = text.split('\n');
   const out = [];

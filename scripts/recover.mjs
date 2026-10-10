@@ -24,7 +24,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIGEST_DIR = join(root, 'digests');
 const dayHeaderRe = /^## (\d{4}-\d{2}-\d{2})\s*$/;
 const feedRe = /^feed:\s*(.+?)\s*$/;
-const h1Re = /^# AI Builders Digest/;
+const h1Re = /^# (?:AI Builders Digest|Ai News)/;
 const isFallback = (b) => /^keywords: 自动简报/m.test(b.body);
 
 function tokenize(text) {
