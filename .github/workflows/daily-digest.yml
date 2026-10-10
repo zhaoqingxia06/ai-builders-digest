@@ -2,11 +2,17 @@ name: daily-digest
 
 on:
   schedule:
-    # 北京时间每天 06 / 10 / 12 / 16 / 20 / 24 点刷新（UTC = 北京 - 8h）
+    # 中转站（zarazhangrui/follow-builders）每天北京时间 ~14:47 落盘新快照；
+    # 15:00 / 15:30 / 16:30 三班紧跟其后抢新料（remix 对同一快照不重生成，
+    # 没新料的班次是秒级空跑，只花 Actions 时间不花 LLM）；其余班次补漏兜底。
+    # （UTC = 北京 - 8h）
     - cron: '0 22 * * *'   # 06:00 Beijing
     - cron: '0 2 * * *'    # 10:00 Beijing
     - cron: '0 4 * * *'    # 12:00 Beijing
+    - cron: '0 7 * * *'    # 15:00 Beijing — 第一时间抢中转站新快照
+    - cron: '30 7 * * *'   # 15:30 Beijing — 中转站偶尔拖到 ~15:02，再抢一次
     - cron: '0 8 * * *'    # 16:00 Beijing
+    - cron: '30 8 * * *'   # 16:30 Beijing — 兜底中转站最晚落盘（曾拖到 16:22）
     - cron: '0 12 * * *'   # 20:00 Beijing
     - cron: '0 16 * * *'   # 24:00 Beijing
   workflow_dispatch: {}

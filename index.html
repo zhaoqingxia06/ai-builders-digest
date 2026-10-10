@@ -161,35 +161,6 @@
   .src-link svg { flex: none; }
   .src-link span { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .src-time { color: var(--muted); font-weight: 400; max-width: none !important; }
-
-  /* ---------- live updates: relay's newest posts, fetched on open ---------- */
-  .live {
-    background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
-    border-radius: 14px; padding: 16px 20px; margin: 0 0 26px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
-  }
-  .live[hidden] { display: none; }
-  .live-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
-  .live-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #e5484d;
-    box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.18); align-self: center; flex: none;
-    animation: livePulse 2s ease-in-out infinite;
-  }
-  @keyframes livePulse { 50% { opacity: 0.35; } }
-  .live-title { font-size: 15px; font-weight: 700; }
-  .live-clock { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .live-note { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-  .live-list { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; }
-  .live-list li {
-    display: grid; grid-template-columns: 44px auto 1fr auto; gap: 10px;
-    align-items: baseline; padding: 7px 0; border-bottom: 1px dashed var(--border);
-    font-size: 13.5px; line-height: 1.6;
-  }
-  .live-list li:last-child { border-bottom: none; }
-  .lv-time { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .lv-name { font-weight: 700; white-space: nowrap; }
-  .lv-text { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .lv-link { white-space: nowrap; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   article em { color: var(--muted); }
@@ -340,20 +311,11 @@
 <div class="wrap">
   <div class="page-head">
     <h1>AI Builders Digest</h1>
-    <div class="mast-meta"><span class="lang-zh">第 24 期 · 每天北京时间 6/10/12/16/20/24 点更新 · 2026-10-10 刊</span><span class="lang-en">Issue 24 · Refreshed 6×daily at 06/10/12/16/20/24 (GMT+8) · 2026-10-10</span></div>
+    <div class="mast-meta"><span class="lang-zh">第 24 期 · 每天多次更新，新内容约 15:30–16:30 上线 · 2026-10-10 刊</span><span class="lang-en">Issue 24 · Refreshed several times daily — new posts land ~15:30–16:30 (GMT+8) · 2026-10-10</span></div>
   </div>
 
   <div class="layout">
     <main class="main">
-      <section id="liveFeed" class="live" hidden>
-        <div class="live-head">
-          <span class="live-dot"></span>
-          <span class="live-title"><span class="lang-zh">最新动态 · 实时</span><span class="lang-en">Live updates</span></span>
-          <span class="live-clock" id="liveClock"></span>
-        </div>
-        <div class="live-note"><span class="lang-zh">中转站今天（北京时间）最新获取的原帖，尚未进入编辑摘要——定时运行后由摘要收录。</span><span class="lang-en">Newest raw posts from the relay (Beijing time), not yet covered by the editorial digests.</span></div>
-        <ol class="live-list" id="liveList"></ol>
-      </section>
       
     <article id="d-2026-10-09" class="day ">
       <div class="lang lang-zh">
@@ -2864,51 +2826,6 @@ const DIGEST_DATES = {"2026-10-09":6459,"2026-10-08":11638,"2026-10-07":7716,"20
 const TODAY_KEY = "2026-10-10";
 const PRODUCT_KB = {"muse":{"name":"Muse","desc":"Meta 推出的个人 AI Agent 应用，可跨 App 替用户执行任务，被视为 ChatGPT 之外最有力的入口级 agent 竞争者。"},"chatgpt":{"name":"ChatGPT","desc":"OpenAI 的对话式 AI 助手，全球用户量最大的 AI 产品，正从聊天扩展到代理执行、个人金融助手等场景。"},"siri":{"name":"Siri","desc":"Apple 的语音助手，正被重构为大模型驱动的个人 agent，但迭代速度常被认为太慢。"},"x402":{"name":"X402","desc":"Coinbase 孵化、后捐给 Linux 基金会的 agent 支付协议：让 AI agent 用 stablecoin 按请求在线付费。"},"toshi":{"name":"Toshi","desc":"Coinbase 内部的 agent harness，把团队的事故记录、规范等「大脑」喂给 agent，实现代码改动的递归自我改进。"},"capy":{"name":"Capy","desc":"capydotai 推出的 agentic 编程工具，擅长多步工作流追踪与大型 PR 自动化，被 Garry Tan 称为快过 Codex/Claude Code 的秘密武器。"},"astra":{"name":"Astra","desc":"一款可完成可验证端到端任务的 agent，投资人 Nikunj Kothari 评价：给它足够难的任务，它直接起飞。"},"codex":{"name":"Codex","desc":"OpenAI 的 AI 编程 agent 与云服务，可自主完成编码任务，其团队已宣告「代码冻结」时代结束。"},"grok":{"name":"Grok","desc":"xAI 的大模型，Vercel CEO 实测其逆向工程能力后评价：解得非常漂亮，而且快得惊人。"},"openclaw":{"name":"OpenClaw","desc":"Peter Steinberger 参与的开源个人 agent 项目（代号 claw），Meta 的自研 agent 曾被传「使用 OpenClaw」，实为受其启发。"},"instinct":{"name":"Instinct","desc":"零配置、面向普通用户的手机 agent 应用，被视作「人人都能用的 agent」的范例。"},"vercel":{"name":"Vercel","desc":"Guillermo Rauch 创办的前端云平台，AI Gateway 让各家模型通过 HTTP 直接调用。"},"replit":{"name":"Replit","desc":"Amjad Masad 领导的在线开发平台，主打人人可造软件，AI agent 深度融入产品。"},"box":{"name":"Box","desc":"Aaron Levie 领导的企业内容管理平台，agent 可对其数千万份企业文件随问随答。"},"blacksmith":{"name":"Blacksmith","desc":"高性能 CI 服务商，OpenClaw 项目的赞助商。"},"typesafe":{"name":"TypeSafe AI","desc":"ChatGPT 联合创造者 Diogo Almeida 创办的 AI 初创公司，主打「机器原生 AI」与 System One 模型 Jev，已获 4000 万美元种子轮。"},"jev":{"name":"Jev","desc":"TypeSafe AI 发布的首个 System One 模型。"},"diogo almeida":{"name":"Diogo Almeida","desc":"TypeSafe AI 联合创始人兼 CEO，OpenAI 时期参与创造 ChatGPT、RLHF 与 InstructGPT。"},"claude in chrome":{"name":"Claude in Chrome","desc":"Anthropic 的浏览器扩展，让 Claude 直接在 Chrome 内替用户操作网页，已正式发布。"},"openai":{"name":"OpenAI","desc":"ChatGPT 与 Codex 的缔造者，AGI 研发的头部公司。"},"meta":{"name":"Meta","desc":"Facebook 与 Instagram 的母公司，自研个人 agent Muse。"},"apple":{"name":"Apple","desc":"Siri 的缔造者，个人 agent 入口之争的重要玩家。"}};
 const LATEST_KEY = "2026-10-09";
-
-// ---------- 中转站实时内容：每次打开页面拉取最新原帖 ----------
-// 只展示北京时间"今天"的、且尚未被任何期号收录（页面上无对应链接）的帖子；
-// 按发帖时间（北京时间）倒序。拉取失败时静默隐藏，不影响正文阅读。
-(async () => {
-  try {
-    const BJ = 8 * 3600e3;
-    const bjDay = (ms) => new Date(ms + BJ).toISOString().slice(0, 10);
-    const bjHM = (ms) => new Date(ms + BJ).toISOString().slice(11, 16);
-    const nowDay = bjDay(Date.now());
-    const base = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/';
-    const [xr, pr] = await Promise.all([fetch(base + 'feed-x.json'), fetch(base + 'feed-podcasts.json')]);
-    if (!xr.ok) return;
-    const data = await xr.json();
-    const pods = pr.ok ? (await pr.json()).podcasts || [] : [];
-    const known = new Set([...document.querySelectorAll('a.src-link')].map((a) => a.href));
-    const items = [];
-    for (const b of data.x || []) {
-      for (const t of b.tweets || []) {
-        if (!t.url || !t.createdAt) continue;
-        const ms = Date.parse(t.createdAt);
-        if (!ms || bjDay(ms) !== nowDay) continue;
-        if (known.has(t.url)) continue;
-        items.push({ ms, name: b.name, text: (t.text || '').replace(/https:\/\/t\.co\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 220), url: t.url });
-      }
-    }
-    for (const p of pods) {
-      if (!p.url || !p.publishedAt) continue;
-      const ms = Date.parse(p.publishedAt);
-      if (!ms || bjDay(ms) !== nowDay) continue;
-      if (known.has(p.url)) continue;
-      items.push({ ms, name: p.name, text: (p.title || '').replace(/\s+/g, ' ').trim().slice(0, 220), url: p.url });
-    }
-    if (!items.length) return;
-    items.sort((a, b) => b.ms - a.ms);
-    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    document.getElementById('liveList').innerHTML = items.slice(0, 40).map((it) =>
-      '<li><span class="lv-time">' + bjHM(it.ms) + '</span><span class="lv-name">' + esc(it.name || '') + '</span>' +
-      '<span class="lv-text">' + esc(it.text) + '</span>' +
-      '<a class="lv-link" href="' + it.url + '" target="_blank" rel="noopener"><span class="lang-zh">原文</span><span class="lang-en">open</span></a></li>'
-    ).join('');
-    document.getElementById('liveClock').textContent = bjHM(Date.now());
-    document.getElementById('liveFeed').hidden = false;
-  } catch (e) { console.warn('live feed unavailable:', e); }
-})();
 
 // month calendar grid + one-day-at-a-time view
 (function () {

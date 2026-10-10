@@ -534,35 +534,6 @@ async function main() {
   .src-link svg { flex: none; }
   .src-link span { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .src-time { color: var(--muted); font-weight: 400; max-width: none !important; }
-
-  /* ---------- live updates: relay's newest posts, fetched on open ---------- */
-  .live {
-    background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
-    border-radius: 14px; padding: 16px 20px; margin: 0 0 26px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
-  }
-  .live[hidden] { display: none; }
-  .live-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
-  .live-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #e5484d;
-    box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.18); align-self: center; flex: none;
-    animation: livePulse 2s ease-in-out infinite;
-  }
-  @keyframes livePulse { 50% { opacity: 0.35; } }
-  .live-title { font-size: 15px; font-weight: 700; }
-  .live-clock { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .live-note { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-  .live-list { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; }
-  .live-list li {
-    display: grid; grid-template-columns: 44px auto 1fr auto; gap: 10px;
-    align-items: baseline; padding: 7px 0; border-bottom: 1px dashed var(--border);
-    font-size: 13.5px; line-height: 1.6;
-  }
-  .live-list li:last-child { border-bottom: none; }
-  .lv-time { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .lv-name { font-weight: 700; white-space: nowrap; }
-  .lv-text { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .lv-link { white-space: nowrap; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   article em { color: var(--muted); }
@@ -713,20 +684,11 @@ async function main() {
 <div class="wrap">
   <div class="page-head">
     <h1>AI Builders Digest</h1>
-    <div class="mast-meta"><span class="lang-zh">第 ${entries.length} 期 · 每天北京时间 6/10/12/16/20/24 点更新 · ${todayKey} 刊</span><span class="lang-en">Issue ${entries.length} · Refreshed 6×daily at 06/10/12/16/20/24 (GMT+8) · ${todayKey}</span></div>
+    <div class="mast-meta"><span class="lang-zh">第 ${entries.length} 期 · 每天多次更新，新内容约 15:30–16:30 上线 · ${todayKey} 刊</span><span class="lang-en">Issue ${entries.length} · Refreshed several times daily — new posts land ~15:30–16:30 (GMT+8) · ${todayKey}</span></div>
   </div>
 
   <div class="layout">
     <main class="main">
-      <section id="liveFeed" class="live" hidden>
-        <div class="live-head">
-          <span class="live-dot"></span>
-          <span class="live-title"><span class="lang-zh">最新动态 · 实时</span><span class="lang-en">Live updates</span></span>
-          <span class="live-clock" id="liveClock"></span>
-        </div>
-        <div class="live-note"><span class="lang-zh">中转站今天（北京时间）最新获取的原帖，尚未进入编辑摘要——定时运行后由摘要收录。</span><span class="lang-en">Newest raw posts from the relay (Beijing time), not yet covered by the editorial digests.</span></div>
-        <ol class="live-list" id="liveList"></ol>
-      </section>
       ${articles}
       <div class="day-empty" id="dayEmpty" hidden>
         <span class="lang-zh">这一天没有摘要</span><span class="lang-en">No digest for this day</span>
@@ -779,51 +741,6 @@ const DIGEST_DATES = ${datesJson};
 const TODAY_KEY = ${JSON.stringify(todayKey)};
 const PRODUCT_KB = ${JSON.stringify(PRODUCT_KB)};
 const LATEST_KEY = ${JSON.stringify(latestKey)};
-
-// ---------- 中转站实时内容：每次打开页面拉取最新原帖 ----------
-// 只展示北京时间"今天"的、且尚未被任何期号收录（页面上无对应链接）的帖子；
-// 按发帖时间（北京时间）倒序。拉取失败时静默隐藏，不影响正文阅读。
-(async () => {
-  try {
-    const BJ = 8 * 3600e3;
-    const bjDay = (ms) => new Date(ms + BJ).toISOString().slice(0, 10);
-    const bjHM = (ms) => new Date(ms + BJ).toISOString().slice(11, 16);
-    const nowDay = bjDay(Date.now());
-    const base = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/';
-    const [xr, pr] = await Promise.all([fetch(base + 'feed-x.json'), fetch(base + 'feed-podcasts.json')]);
-    if (!xr.ok) return;
-    const data = await xr.json();
-    const pods = pr.ok ? (await pr.json()).podcasts || [] : [];
-    const known = new Set([...document.querySelectorAll('a.src-link')].map((a) => a.href));
-    const items = [];
-    for (const b of data.x || []) {
-      for (const t of b.tweets || []) {
-        if (!t.url || !t.createdAt) continue;
-        const ms = Date.parse(t.createdAt);
-        if (!ms || bjDay(ms) !== nowDay) continue;
-        if (known.has(t.url)) continue;
-        items.push({ ms, name: b.name, text: (t.text || '').replace(/https:\\/\\/t\\.co\\/\\S+/g, '').replace(/\\s+/g, ' ').trim().slice(0, 220), url: t.url });
-      }
-    }
-    for (const p of pods) {
-      if (!p.url || !p.publishedAt) continue;
-      const ms = Date.parse(p.publishedAt);
-      if (!ms || bjDay(ms) !== nowDay) continue;
-      if (known.has(p.url)) continue;
-      items.push({ ms, name: p.name, text: (p.title || '').replace(/\\s+/g, ' ').trim().slice(0, 220), url: p.url });
-    }
-    if (!items.length) return;
-    items.sort((a, b) => b.ms - a.ms);
-    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    document.getElementById('liveList').innerHTML = items.slice(0, 40).map((it) =>
-      '<li><span class="lv-time">' + bjHM(it.ms) + '</span><span class="lv-name">' + esc(it.name || '') + '</span>' +
-      '<span class="lv-text">' + esc(it.text) + '</span>' +
-      '<a class="lv-link" href="' + it.url + '" target="_blank" rel="noopener"><span class="lang-zh">原文</span><span class="lang-en">open</span></a></li>'
-    ).join('');
-    document.getElementById('liveClock').textContent = bjHM(Date.now());
-    document.getElementById('liveFeed').hidden = false;
-  } catch (e) { console.warn('live feed unavailable:', e); }
-})();
 
 // month calendar grid + one-day-at-a-time view
 (function () {
